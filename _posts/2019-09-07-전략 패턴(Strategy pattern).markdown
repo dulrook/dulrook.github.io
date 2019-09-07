@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "템플릿 메소드 패턴(Template method pattern)"
+title:  "전략 패턴(Strategy pattern)"
 date:   2019-09-07 10:46:52 +0900
 categories: 디자인패턴
 ---
