@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: posts
 title:  "템플릿 메소드 패턴(Template method pattern)"
 date:   2019-09-06 22:45:52 +0900
 categories: 디자인패턴

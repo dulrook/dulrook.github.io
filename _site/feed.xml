@@ -1,0 +1,775 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.6.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2019-09-08T02:24:42+09:00</updated><id>http://localhost:4000/</id><title type="html">덜룩 Sequel</title><subtitle>Java, Spring framework, Web develop, etc.</subtitle><author><name>Dulrook Lee</name><email>dulrook@gmail.com</email></author><entry><title type="html">[모던자바인액션] 메서드 참조, 람다, 익명함수</title><link href="http://localhost:4000/%EC%9E%90%EB%B0%94/%EB%AA%A8%EB%8D%98%EC%9E%90%EB%B0%94%EC%9D%B8%EC%95%A1%EC%85%98-%EB%A9%94%EC%84%9C%EB%93%9C-%EC%B0%B8%EC%A1%B0,-%EB%9E%8C%EB%8B%A4,-%EC%9D%B5%EB%AA%85%ED%95%A8%EC%88%98/" rel="alternate" type="text/html" title="[모던자바인액션] 메서드 참조, 람다, 익명함수" /><published>2019-09-08T00:07:00+09:00</published><updated>2019-09-08T00:07:00+09:00</updated><id>http://localhost:4000/%EC%9E%90%EB%B0%94/%5B%EB%AA%A8%EB%8D%98%EC%9E%90%EB%B0%94%EC%9D%B8%EC%95%A1%EC%85%98%5D%20%EB%A9%94%EC%84%9C%EB%93%9C%20%EC%B0%B8%EC%A1%B0,%20%EB%9E%8C%EB%8B%A4,%20%EC%9D%B5%EB%AA%85%ED%95%A8%EC%88%98</id><content type="html" xml:base="http://localhost:4000/%EC%9E%90%EB%B0%94/%EB%AA%A8%EB%8D%98%EC%9E%90%EB%B0%94%EC%9D%B8%EC%95%A1%EC%85%98-%EB%A9%94%EC%84%9C%EB%93%9C-%EC%B0%B8%EC%A1%B0,-%EB%9E%8C%EB%8B%A4,-%EC%9D%B5%EB%AA%85%ED%95%A8%EC%88%98/">&lt;h2 id=&quot;functions-in-java&quot;&gt;Functions in Java&lt;/h2&gt;
+&lt;h3 id=&quot;메서드-참조method-reference&quot;&gt;메서드 참조(Method reference)&lt;/h3&gt;
+&lt;p&gt;디렉토리에서 숨겨진 파일들을 필터링 하는 프로그램을 만든다고 했을 때, 기존 방식(자바8 이전)으로는 다음과 같이 구현할 수 있다.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-Java&quot;&gt;File[] hiddenFiles = new File(&quot;.&quot;).listFiles(new FileFilter() {
+      @Override
+      public boolean accept(File pathname) {
+            return pathname.isHidden();
+      }
+});
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;위의 코드를 이해하기 위해 &lt;em&gt;java.io.File&lt;/em&gt; 과 &lt;em&gt;java.io.FileFilter&lt;/em&gt;에 대한 문서를 참조해보면 아래와 같다.&lt;/p&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;&lt;em&gt;Constructors&lt;/em&gt;&lt;/p&gt;
+
+  &lt;p&gt;&lt;strong&gt;File(String pathname)&lt;/strong&gt;&lt;br /&gt;
+Creates a new File instance by converting the given pathname string into an abstract pathname.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;&lt;em&gt;Methods&lt;/em&gt;&lt;br /&gt;
+Modifier and Type | Method and Description&lt;br /&gt;
+|–|–|
+File[]|&lt;code class=&quot;highlighter-rouge&quot;&gt;listFiles&lt;/code&gt;( ) &lt;br /&gt; Returns an array of abstract pathnames denoting the files in the directory denoted by this abstract pathname.
+File[]|&lt;code class=&quot;highlighter-rouge&quot;&gt;listFiles&lt;/code&gt;(&lt;code class=&quot;highlighter-rouge&quot;&gt;FileFilter&lt;/code&gt; filter) &lt;br /&gt; Returns an array of abstract pathnames denoting the files and directories in the directory denoted by this abstract pathname that satisfy the specified filter.
+File[]|&lt;code class=&quot;highlighter-rouge&quot;&gt;listFiles&lt;/code&gt;(&lt;code class=&quot;highlighter-rouge&quot;&gt;FilenameFilter&lt;/code&gt; filter) &lt;br /&gt; Returns an array of abstract pathnames denoting the files and directories in the directory denoted by this abstract pathname that satisfy the specified filter.
+boolean |&lt;code class=&quot;highlighter-rouge&quot;&gt;isHidden&lt;/code&gt;( ) &lt;br /&gt; Tests whether the file named by this abstract pathname is a hidden file.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;File 클래스에는 File의 배열형태로 리턴하는 &lt;code class=&quot;highlighter-rouge&quot;&gt;listFiles&lt;/code&gt;( ) 메서드로 3가지의 다형성이 존재한다. 아무런 인자를 받지 않고 디렉토리에 존재하는 파일들을 배열로 담아 리턴하거나, &lt;code class=&quot;highlighter-rouge&quot;&gt;FileFilter&lt;/code&gt; 또는 &lt;code class=&quot;highlighter-rouge&quot;&gt;FilenameFilter&lt;/code&gt; 를 인자로 받아 조건에 따라 필터링된 파일들만을 배열로 담아 리턴한다. 이 중에서 &lt;code class=&quot;highlighter-rouge&quot;&gt;FileFilter&lt;/code&gt;는 Java.io 패키지에서 아래와 같이 구현되어있다.&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;cm&quot;&gt;/**
+ * A filter for abstract pathnames.
+ *
+ * &amp;lt;p&amp;gt; Instances of this interface may be passed to the &amp;lt;code&amp;gt;{@link
+ * File#listFiles(java.io.FileFilter) listFiles(FileFilter)}&amp;lt;/code&amp;gt; method
+ * of the &amp;lt;code&amp;gt;{@link java.io.File}&amp;lt;/code&amp;gt; class.
+ *
+ * @since 1.2
+ */&lt;/span&gt;
+&lt;span class=&quot;nd&quot;&gt;@FunctionalInterface&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;interface&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;FileFilter&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+
+    &lt;span class=&quot;cm&quot;&gt;/**
+     * Tests whether or not the specified abstract pathname should be
+     * included in a pathname list.
+     *
+     * @param  pathname  The abstract pathname to be tested
+     * @return  &amp;lt;code&amp;gt;true&amp;lt;/code&amp;gt; if and only if &amp;lt;code&amp;gt;pathname&amp;lt;/code&amp;gt;
+     *          should be included
+     */&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;boolean&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;accept&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;File&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pathname&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;먼저 &lt;code class=&quot;highlighter-rouge&quot;&gt;@FunctionalInterface&lt;/code&gt;는 람다를 쓰기 위해 자바8 부터 도입된 애노테이션이다. 모든 함수형 인터페이스 &lt;em&gt;(하나의 추상 메서드만(SAM, Single Abstract Method)을 갖는 인터페이스로 보통 람다 표현식으로 다뤄진다)&lt;/em&gt; 에는 이 애노테이션을 사용할 것을 권장한다. 해당 인터페이스의 목적을 명확하게 명시함으로써 커뮤니케이션을 분명하게 할 수 있고, 이 애노테이션이 붙은 인터페이스에 추상 메서드가 2개 이상 선언되어있으면 컴파일러가 에러를 생성할 수 있도록 하는 장점이 있기 때문이다.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;&lt;em&gt;람다에 대해 ..&lt;/em&gt;&lt;br /&gt;
+람다는 익명 함수로써 일급 시민으로 취급된다, 즉, 메서드에 전달되거나 메서드로부터 리턴될 수 있다. &lt;br /&gt;
+자바8 이전에는 하나의 기능 조각에 대해 캡슐화가 필요할 때 마다 매번  클래스를 생성했어야 했다. 그래서 불필요한 코드들이 많이 생겨나는 문제점이 있었다.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;어쨌든 람다에 대한 이야기는 잠시 뒤로 미뤄놓고, 위에 작성된 숨겨진 파일들을 찾아내는 소스 코드를 살펴보면 이 &lt;code class=&quot;highlighter-rouge&quot;&gt;FileFilter&lt;/code&gt; 라는 인터페이스를 인자로 받는 &lt;code class=&quot;highlighter-rouge&quot;&gt;listFiles&lt;/code&gt;() 메서드를 사용하고 있고, &lt;code class=&quot;highlighter-rouge&quot;&gt;FileFilter&lt;/code&gt;의 &lt;code class=&quot;highlighter-rouge&quot;&gt;accept&lt;/code&gt;()를 &lt;code class=&quot;highlighter-rouge&quot;&gt;isHidden&lt;/code&gt;() 라는 조건을 사용하여 구현하고 있는 형태가 된다.&lt;/p&gt;
+
+&lt;p&gt;그리고 이제 위의 소스코드는 자바8에서 아래와 같이 표현할 수 있게된다.&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;File&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;hiddenFiles&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;File&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;.&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;listFiles&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nl&quot;&gt;File:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;isHidden&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;기존에 자바에서 new로 객체 참조를 생성하여 객체를 주고 받았던것과같이 자바8 에서는 메서드 참조를 만들어 전달하는 것이다. 다시 말해 자바8의 &lt;strong&gt;메서드 참조&lt;/strong&gt;는 &lt;strong&gt;::&lt;/strong&gt; 라는 기호를 사용하여 &lt;code class=&quot;highlighter-rouge&quot;&gt;File&lt;/code&gt; 클래스의 &lt;code class=&quot;highlighter-rouge&quot;&gt;isHidden&lt;/code&gt;() 메서드를 참조할 수 있게한다. 따라서 위 경우에서 &lt;code class=&quot;highlighter-rouge&quot;&gt;FileFilter&lt;/code&gt; 함수형 인터페이스의 메서드 리턴 타입과 &lt;code class=&quot;highlighter-rouge&quot;&gt;isHidden&lt;/code&gt;()의 리턴 타입이 boolean으로 동일하므로 코드 자체를 전달되는것 이다.&lt;/p&gt;
+
+&lt;h3 id=&quot;코드-넘겨주기-예제&quot;&gt;코드 넘겨주기 예제&lt;/h3&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;java.util.ArrayList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;java.util.List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Main&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Stock&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;price&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;type&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+
+        &lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;price&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;type&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;price&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;price&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;type&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;type&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;getName&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;getPrice&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;price&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;getType&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;type&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;/////////////////////////////////////////////////////////////////////////// Old style ---&amp;gt;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;filterKospiStock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;filteredStockList&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ArrayList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stock&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;KOSPI&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;equals&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getType&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()))&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;filteredStockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+            &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;filteredStockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;filterExpensiveStock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;filteredStockList&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ArrayList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stock&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getPrice&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1_000_000&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;filteredStockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+            &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;filteredStockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;/////////////////////////////////////////////////////////////////////////// Old style &amp;lt;---&lt;/span&gt;
+
+
+    &lt;span class=&quot;c1&quot;&gt;/////////////////////////////////////////////////////////////////////////// Modern style ---&amp;gt;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;interface&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Predicate&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;T&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;boolean&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;test&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;T&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;t&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;boolean&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;isKospi&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;KOSPI&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;equals&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getType&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;());&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;boolean&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;isExpensive&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getPrice&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1_000_000&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;filterStock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Predicate&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;filteredStockList&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ArrayList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stock&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;test&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+                &lt;span class=&quot;n&quot;&gt;filteredStockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+            &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;filteredStockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;/////////////////////////////////////////////////////////////////////////// Modern style &amp;lt;---&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;main&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;List&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stockList&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ArrayList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;stockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;A&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;500000&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;KOSPI&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;stockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;B&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;50000&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;KOSDAQ&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;stockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;C&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1000000&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;KOSDAQ&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;stockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;add&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;D&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2000000&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;KOSPI&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+
+        &lt;span class=&quot;n&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;out&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;filterKospiStock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;containsAll&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;filterStock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nl&quot;&gt;Main:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;isKospi&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)));&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// True&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;out&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;filterExpensiveStock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;containsAll&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;filterStock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nl&quot;&gt;Main:&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;isExpensive&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)));&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// True&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+
+
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h3 id=&quot;메서드-전달에서-람다로&quot;&gt;메서드 전달에서 람다로&lt;/h3&gt;
+
+&lt;p&gt;메서드를 값으로 전달함으로써 중복되는 코드 구현을 줄일수어 유용하지만, 한 두번만 사용되는 isKospi 나 isExpensive와 같은 짧은 메서드를 일일히 정의하는 것은 귀찮은 일이된다. 그래서 익명 함수 또는 람다라는 새로운 개념을 이용하면 단순히 아래처럼 코드를 작성할 수 있다.&lt;/p&gt;
+
+&lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;filterStock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;KOSPI&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;equals&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getType&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()));&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;filterStock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getPrice&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1_000_000&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;// Also even&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;filterStock&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stockList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Stock&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;KOSPI&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;equals&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getType&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;())&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;||&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getPrice&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1_000_000&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;위와 같이 짧은 코드로 작성될 메서드는 일일히 정의하여, 어디에 구현되어있는지 굳이 찾을필요 없이 간편하게 익명 람다를 사용하는것이 유용하다. 하지만 메서드의 길이가 다소 길어진다면 어떤 기능을 하는지 명확한 이름을 가진 메서드로 정의하는것이 바람직하다.&lt;/p&gt;</content><author><name>Dulrook Lee</name><email>dulrook@gmail.com</email></author><summary type="html">Functions in Java 메서드 참조(Method reference) 디렉토리에서 숨겨진 파일들을 필터링 하는 프로그램을 만든다고 했을 때, 기존 방식(자바8 이전)으로는 다음과 같이 구현할 수 있다.</summary></entry><entry><title type="html">JUnit 과 테스트 주도개발(TDD)</title><link href="http://localhost:4000/%ED%85%8C%EC%8A%A4%ED%8A%B8/JUnit-%EA%B3%BC-%ED%85%8C%EC%8A%A4%ED%8A%B8-%EC%A3%BC%EB%8F%84%EA%B0%9C%EB%B0%9C(TDD)/" rel="alternate" type="text/html" title="JUnit 과 테스트 주도개발(TDD)" /><published>2019-09-07T10:54:52+09:00</published><updated>2019-09-07T10:54:52+09:00</updated><id>http://localhost:4000/%ED%85%8C%EC%8A%A4%ED%8A%B8/JUnit%20%EA%B3%BC%20%ED%85%8C%EC%8A%A4%ED%8A%B8%20%EC%A3%BC%EB%8F%84%EA%B0%9C%EB%B0%9C(TDD)</id><content type="html" xml:base="http://localhost:4000/%ED%85%8C%EC%8A%A4%ED%8A%B8/JUnit-%EA%B3%BC-%ED%85%8C%EC%8A%A4%ED%8A%B8-%EC%A3%BC%EB%8F%84%EA%B0%9C%EB%B0%9C(TDD)/">&lt;h2 id=&quot;junit&quot;&gt;[JUnit]&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;JUnit은 자바 프로그래밍을 위한 단위 테스트 프레임 워크
+    &lt;ul&gt;
+      &lt;li&gt;켄트 벡, 에릭 감마 등에 의해 개발되어졌으며, 최근 Stable 릴리즈는 5.3.1, 2018.09.11&lt;/li&gt;
+      &lt;li&gt;테스트 주도 개발에서 중요한 역할&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;JUnit 4의 기능
+    &lt;ul&gt;
+      &lt;li&gt;&lt;strong&gt;Assertions&lt;/strong&gt;
+        &lt;ul&gt;
+          &lt;li&gt;JUnit은 모든 primitive types, objects, array에 대해 오버로드된 assertion 메소드를 제공&lt;/li&gt;
+          &lt;li&gt;파라미터의 순서는 기대값, 실제값 순 (반대로 적으면 나중에 로그도 반대로 나와서 짜증남)&lt;/li&gt;
+          &lt;li&gt;메소드 종류
+            &lt;ul&gt;
+              &lt;li&gt;assertArraysEquals(), assertEquals(), assertNotNull(), assertNotSame(), assertSame(), assertNull(), assertNull(), assertThat()&lt;/li&gt;
+            &lt;/ul&gt;
+          &lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;&lt;strong&gt;Test Runners&lt;/strong&gt;
+        &lt;ul&gt;
+          &lt;li&gt;이클립스, IntelliJ Idea 등 IDE에는 네이티브의 그래픽컬한 test runner가 내장 되어 있음&lt;/li&gt;
+          &lt;li&gt;@RunWith annotation
+            &lt;ul&gt;
+              &lt;li&gt;클래스에 @RuntWith 가 붙어있으면, JUnit은 내장된 runner 대신에 어노테이션이 참조하는 클래스를 호출함&lt;/li&gt;
+              &lt;li&gt;디폴트 Runner는 BlockJUnit4ClassRunner&lt;/li&gt;
+              &lt;li&gt;ex: @RunWith(SpringJUnit4ClassRunner.class)&lt;/li&gt;
+            &lt;/ul&gt;
+          &lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;&lt;strong&gt;Aggregating tests in Suites&lt;/strong&gt;
+        &lt;ul&gt;
+          &lt;li&gt;Suite 를 runner로 사용하여 여러 테스트 클래스들을 합칠 수 있다
+            &lt;ul&gt;
+              &lt;li&gt;RunWith(Suite.class) and @SuiteClass(TestClass1.class, …)&lt;/li&gt;
+            &lt;/ul&gt;
+          &lt;/li&gt;
+          &lt;li&gt;Suite 클래스를 실행하면 이 클래스에 포함된 모든 테스트가 실행됨&lt;/li&gt;
+          &lt;li&gt;Example
+            &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;org.junit.runner.RunWith&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;org.junit.runners.Suite&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+ 
+&lt;span class=&quot;nd&quot;&gt;@RunWith&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Suite&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;class&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;nd&quot;&gt;@Suite&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;SuiteClasses&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;({&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;TestFeatureLogin&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;class&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;TestFeatureLogout&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;class&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;TestFeatureNavigate&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;class&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;TestFeatureUpdate&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;class&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;})&lt;/span&gt;
+ 
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;FeatureTestSuite&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;// the class remains empty,&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;// used only as a holder for the above annotations&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;            &lt;/div&gt;
+          &lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;&lt;strong&gt;Test Execution Order&lt;/strong&gt;
+        &lt;ul&gt;
+          &lt;li&gt;물론 잘 만들어진 테스트 코드는 실행되는 순서를 가정할 필요 없지만, 특정 플랫폼에서는 순서를 정해놓는게 좋을 수도 있음&lt;/li&gt;
+          &lt;li&gt;클래스에 @FixMethodOrder 어노테이션을 달고 MethodSorters를 지정하여 실행 순서를 변경할 수 있음&lt;/li&gt;
+          &lt;li&gt;@FixmethodOrder(MethodSorters.JVM) : JVM에 의해 리턴되는 순서에 따라 테스트가 실행되게 냅둔다. (실행할 때 마다 순서 달라짐)&lt;/li&gt;
+          &lt;li&gt;@FixmethodOrder(MethodSorters.NAME_ASCENDING) : 이름순으로 메소드를 정렬하여 실행&lt;/li&gt;
+          &lt;li&gt;Example
+            &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;org.junit.FixMethodOrder&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;org.junit.Test&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;org.junit.runners.MethodSorters&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+ 
+&lt;span class=&quot;nd&quot;&gt;@FixMethodOrder&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;MethodSorters&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;NAME_ASCENDING&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;TestMethodOrder&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+ 
+    &lt;span class=&quot;nd&quot;&gt;@Test&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;testA&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;out&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;first&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;nd&quot;&gt;@Test&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;testB&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;out&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;second&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;nd&quot;&gt;@Test&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;testC&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;System&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;out&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;println&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;third&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;            &lt;/div&gt;
+          &lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;&lt;strong&gt;Exception Testing&lt;/strong&gt;
+        &lt;ul&gt;
+          &lt;li&gt;코드가 정상적으로 실행되는지를 테스트하는 것도 중요하지만, 코드가 어떤 상황에서 어떤 예외를 발생시키는지에 대해 정확히 파악하는 것도 중요함&lt;/li&gt;
+          &lt;li&gt;예를 들어, 아래 코드는 IndexOutOfBoundsException 예외를 발생시킨다.
+            &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ArrayList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Object&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;().&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;            &lt;/div&gt;
+            &lt;p&gt;그렇다면 다음과 같은 테스트 코드를 작성해볼 수 있다&lt;/p&gt;
+            &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nd&quot;&gt;@Test&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;expected&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;IndexOutOfBoundsException&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;class&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;empty&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+     &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ArrayList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Object&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;().&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;get&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;            &lt;/div&gt;
+          &lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;&lt;strong&gt;Matchers and assertThat&lt;/strong&gt;
+        &lt;ul&gt;
+          &lt;li&gt;Joe Walnes 라는 사람이 asserThat 이라는 이름의 메소드를 고안했는데, 문법은 대략 아래와 같다
+            &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;assertThat&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;is&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;assertThat&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;is&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;not&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)));&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;assertThat&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;responseString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;either&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;containsString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;color&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)).&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;or&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;containsString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;colour&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)));&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;assertThat&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;myList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;hasItem&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;3&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;            &lt;/div&gt;
+            &lt;p&gt;더 일반적으로 표현하면,&lt;/p&gt;
+            &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;assertThat&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;([&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;matcher&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;statement&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;]);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;            &lt;/div&gt;
+          &lt;/li&gt;
+          &lt;li&gt;이런 assertion 문법의 장점
+            &lt;ul&gt;
+              &lt;li&gt;가독성이 좋고, 타입을 지정하기 쉽다
+                &lt;ul&gt;
+                  &lt;li&gt;assertEquals는 동사,목적어,주어순(assert “equals 3 x”)으로 읽히지만 assertThat은 주어,동사,목적어 순(assert “x is 3”)으로 읽힌다 (영어쓰는 애들한테는 훨씬 직관적인듯)&lt;/li&gt;
+                &lt;/ul&gt;
+              &lt;/li&gt;
+              &lt;li&gt;응용하기 좋음
+                &lt;ul&gt;
+                  &lt;li&gt;matcher 문들은 부정( not(s) ), 결합( either(s).or(t) ), 콜렉션에 맵핑 ( each(s) )등을 사용할 수 있음&lt;/li&gt;
+                &lt;/ul&gt;
+              &lt;/li&gt;
+              &lt;li&gt;테스트가 실패했을 때 매세지가 더 읽기 좋음
+                &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;assertTrue&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;responseString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;contains&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;color&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;||&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;responseString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;contains&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;colour&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// ==&amp;gt; failure message:&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// java.lang.AssertionError:&lt;/span&gt;
+ 
+ 
+&lt;span class=&quot;n&quot;&gt;assertThat&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;responseString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;anyOf&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;containsString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;color&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;containsString&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;colour&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)));&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// ==&amp;gt; failure message:&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// java.lang.AssertionError:&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// Expected: (a string containing &quot;color&quot; or a string containing &quot;colour&quot;)&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;//      got: &quot;Please choose a font&quot;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;                &lt;/div&gt;
+              &lt;/li&gt;
+              &lt;li&gt;다양한 matcher 들의 호환성을 위해 Hamcrest 프로젝트의 hamcrest-core 클래스를 JUnit 프레임워크에 포함하기로 결정하였는데, 이는 서드파티 클래스가 JUnit에 포함된 첫번째 사례다.&lt;/li&gt;
+            &lt;/ul&gt;
+          &lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;&lt;strong&gt;Ignoring Tests&lt;/strong&gt;
+        &lt;ul&gt;
+          &lt;li&gt;뭐 어떤 이유로 테스트가 실패되지 않길 원한다면 특정 메소드를 임시로 disable할 수 있다&lt;/li&gt;
+          &lt;li&gt;@Test 어노테이션을 삭제하는 방법도 있겠지만, @Ignore 를 추가로 달아주는 방법이 있다. Test runner는 무시된 테스트의 개수를 보고할 것이다.&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;&lt;strong&gt;Timeout for Tests&lt;/strong&gt;
+        &lt;ul&gt;
+          &lt;li&gt;너무 실행이 오래걸리는 테스트의 경우 자동으로 fail 처리할 수 있다. 이 기능을 구현하는데는 두가지 방법이 있음&lt;/li&gt;
+          &lt;li&gt;@Test 어노테이션에 Timeout 파라미터 삽입
+            &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nd&quot;&gt;@Test&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;timeout&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1000&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;testWithTimeout&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;...&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;            &lt;/div&gt;
+          &lt;/li&gt;
+          &lt;li&gt;Timeout Rule
+            &lt;ul&gt;
+              &lt;li&gt;클래스 내에 모든 테스트에 같은 타임아웃을 적용하고 싶을 때 Timeout Rule을 적용해볼 수 있다
+                &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;org.junit.Rule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;org.junit.Test&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;org.junit.rules.Timeout&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+ 
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;HasGlobalTimeout&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;String&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CountDownLatch&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;latch&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CountDownLatch&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+ 
+    &lt;span class=&quot;nd&quot;&gt;@Rule&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Timeout&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;globalTimeout&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Timeout&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;seconds&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// 10 seconds max per method tested&lt;/span&gt;
+ 
+    &lt;span class=&quot;nd&quot;&gt;@Test&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;testSleepForTooLong&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;throws&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Exception&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;log&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;ran1&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;TimeUnit&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;SECONDS&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;sleep&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;100&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// sleep for 100 seconds&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+ 
+    &lt;span class=&quot;nd&quot;&gt;@Test&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;testBlockForever&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;throws&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Exception&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;log&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;ran2&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;latch&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;await&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;// will block&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;                &lt;/div&gt;
+              &lt;/li&gt;
+            &lt;/ul&gt;
+          &lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;&lt;strong&gt;Parameterized Tests&lt;/strong&gt;
+        &lt;ul&gt;
+          &lt;li&gt;커스텀 runner인 Parameterized를 사용하여 같은 테스트를 여러 파라미터 값들로 여러번 실행할 수 있다&lt;/li&gt;
+          &lt;li&gt;Parameterized 테스트 클래스를 실행하면 인스턴스들에 테스트 메소드와 테스트 데이터 값들이 생성된다&lt;/li&gt;
+          &lt;li&gt;피보나치 수열을 예로들면,
+            &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;org&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;junit&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;Assert&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;assertEquals&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+ 
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;java.util.Arrays&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;java.util.Collection&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+ 
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;org.junit.Test&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;org.junit.runner.RunWith&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;org.junit.runners.Parameterized&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;org.junit.runners.Parameterized.Parameters&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+ 
+&lt;span class=&quot;nd&quot;&gt;@RunWith&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Parameterized&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;class&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;FibonacciTest&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nd&quot;&gt;@Parameters&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Collection&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Object&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[]&amp;gt;&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Arrays&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;asList&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Object&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;[][]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;    
+                 &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;},&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;},&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;},&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;},&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;},&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;5&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;},&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;8&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt; 
+           &lt;span class=&quot;o&quot;&gt;});&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+ 
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fInput&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+ 
+    &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;fExpected&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+ 
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;FibonacciTest&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;input&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;expected&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;fInput&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;input&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;fExpected&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;expected&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+ 
+    &lt;span class=&quot;nd&quot;&gt;@Test&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;test&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;assertEquals&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fExpected&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Fibonacci&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;compute&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fInput&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+ 
+&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Fibonacci&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;static&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;compute&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;result&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+         
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;n&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;result&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;n&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;result&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;compute&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;n&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;compute&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;n&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+         
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;result&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;            &lt;/div&gt;
+            &lt;p&gt;Fibonacci Test의 각 인스턴스들은 두 개의 인자를 갖는 생성자를 통해 생성될 것이며, 이때 파라미터로 넘어가는 값들은 @Parameters 메소드 내에 있는 것이 사용된다&lt;/p&gt;
+          &lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;&lt;strong&gt;Rules&lt;/strong&gt;
+        &lt;ul&gt;
+          &lt;li&gt;Rules 를 사용하면 테스트 클래스내에 메소들의 기능을 재정의하거나 유연하게 추가할 수 있게됨&lt;/li&gt;
+          &lt;li&gt;Example
+            &lt;div class=&quot;language-java highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;DigitalAssetManagerTest&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nd&quot;&gt;@Rule&lt;/span&gt;
+  &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;TemporaryFolder&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;tempFolder&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;TemporaryFolder&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+ 
+  &lt;span class=&quot;nd&quot;&gt;@Rule&lt;/span&gt;
+  &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;final&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ExpectedException&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exception&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ExpectedException&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;none&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;();&lt;/span&gt;
+ 
+  &lt;span class=&quot;nd&quot;&gt;@Test&lt;/span&gt;
+  &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;countsAssets&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;throws&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;IOException&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;File&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;icon&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;tempFolder&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;newFile&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;icon.png&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;File&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;assets&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;tempFolder&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;newFolder&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;assets&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;createAssets&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;assets&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+ 
+    &lt;span class=&quot;n&quot;&gt;DigitalAssetManager&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dam&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DigitalAssetManager&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;icon&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;assets&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;assertEquals&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;3&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dam&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;getAssetCount&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;());&lt;/span&gt;
+  &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+ 
+  &lt;span class=&quot;kd&quot;&gt;private&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;createAssets&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;File&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;assets&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;numberOfAssets&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;throws&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;IOException&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;index&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;index&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;numberOfAssets&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;index&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;++)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;n&quot;&gt;File&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asset&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;File&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;assets&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;format&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;asset-%d.mpg&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;index&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;));&lt;/span&gt;
+      &lt;span class=&quot;n&quot;&gt;Assert&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;assertTrue&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Asset couldn't be created.&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asset&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;createNewFile&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;());&lt;/span&gt;
+    &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+ 
+  &lt;span class=&quot;nd&quot;&gt;@Test&lt;/span&gt;
+  &lt;span class=&quot;kd&quot;&gt;public&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;throwsIllegalArgumentExceptionIfIconIsNull&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;exception&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;expect&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;IllegalArgumentException&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;class&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;exception&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;na&quot;&gt;expectMessage&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Icon is null, not a file, or doesn't exist.&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;new&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;DigitalAssetManager&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;null&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;);&lt;/span&gt;
+  &lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;o&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;            &lt;/div&gt;
+          &lt;/li&gt;
+          &lt;li&gt;https://github.com/junit-team/junit4/wiki/Rules 참조&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;&lt;strong&gt;TestFixtures&lt;/strong&gt;
+        &lt;ul&gt;
+          &lt;li&gt;테스트 픽스쳐는 테스트 실행에 기준값으로 사용되는 객체 집합의 고정된 상태이다. 즉 테스트 픽스쳐의 목적은 테스트들이 실행될 때 고정된 환경을 보장하고자 하는것이다.&lt;/li&gt;
+          &lt;li&gt;픽스쳐의 예
+            &lt;ul&gt;
+              &lt;li&gt;mock 객체의 입력 데이터 및 setup/creation 준비&lt;/li&gt;
+              &lt;li&gt;특정한 데이터베이스 로딩&lt;/li&gt;
+            &lt;/ul&gt;
+          &lt;/li&gt;
+          &lt;li&gt;픽스쳐의 종류
+            &lt;ul&gt;
+              &lt;li&gt;@BeforeClass&lt;/li&gt;
+              &lt;li&gt;@AfterClass&lt;/li&gt;
+              &lt;li&gt;@Before&lt;/li&gt;
+              &lt;li&gt;@After&lt;/li&gt;
+            &lt;/ul&gt;
+          &lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;hr /&gt;
+
+&lt;h2 id=&quot;tdd&quot;&gt;[TDD]&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&quot;https://user-images.githubusercontent.com/47546079/57599307-3156f180-7591-11e9-82c6-2f7e96acf7f6.png&quot; alt=&quot;1&quot; /&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;TDD 란?
+    &lt;ul&gt;
+      &lt;li&gt;TDD는 먼저 테스트 케이스를 작성하고나서 이를 통과시키기 위한 코드 일부분을 개발해나가는 프로세스를 말함&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;TDD Cycle
+    &lt;ol&gt;
+      &lt;li&gt;테스트를 생성한다
+        &lt;ol&gt;
+          &lt;li&gt;TDD 에서는 새로운 기능을 추가할 때마다 테스트를 먼저 작성한다.&lt;/li&gt;
+          &lt;li&gt;테스트 작성을 위해 개발자는 반드시 기능의 스펙과 요구사항에 대해 확실히 이해해야한다.&lt;/li&gt;
+          &lt;li&gt;개발자는 유즈 케이스나 유저 스토리등을 통해 요구사항과 예외 조건등에 대해 파악하고 적절한 테스트 프레임워크를 사용하여 테스트를 작성한다&lt;/li&gt;
+        &lt;/ol&gt;
+      &lt;/li&gt;
+      &lt;li&gt;모든 테스트를 실행해보고, 새로운 테스트가 fail인지 확인한다
+        &lt;ol&gt;
+          &lt;li&gt;모든 테스트가 통과되는지 확인하고, 새로 추가한 테스트 코드가 fail 됨을 확인한다.&lt;/li&gt;
+          &lt;li&gt;이 과정을 통해 테스트 코드가 잘못 코딩되어서 항상 pass 되는 경우를 배제할 수 있다.&lt;/li&gt;
+          &lt;li&gt;테스트의 fail은 예상 된 이유로 실패해야 된다.&lt;/li&gt;
+        &lt;/ol&gt;
+      &lt;/li&gt;
+      &lt;li&gt;코드를 작성한다
+        &lt;ol&gt;
+          &lt;li&gt;위에서 작성한 테스트 코드가 통과되기 위한 소스 코드를 작성한다&lt;/li&gt;
+          &lt;li&gt;이 단계에서 작성된 코드는 완벽하지 않아도 된다. 왜냐하면 Step5 에서 발전시킬거니까.&lt;/li&gt;
+          &lt;li&gt;오로지 테스트를 통과시키는게 작성된 코드의 목적이다.&lt;/li&gt;
+          &lt;li&gt;개발자는 이때 테스트 체크를 위한 기능을 넘어서는 코드 작성을 해서는 안된다.&lt;/li&gt;
+        &lt;/ol&gt;
+      &lt;/li&gt;
+      &lt;li&gt;테스트를 실행한다
+        &lt;ol&gt;
+          &lt;li&gt;모든 테스트 케이스가 통과한다면, 개발자는 새로운 코드에 대해 안심할 수 있다.&lt;/li&gt;
+        &lt;/ol&gt;
+      &lt;/li&gt;
+      &lt;li&gt;코드를 리팩토링한다
+        &lt;ol&gt;
+          &lt;li&gt;중복되는 부분은 제거한다.&lt;/li&gt;
+          &lt;li&gt;오브젝트, 클래스, 모듈, 변수, 메소드 등등의 이름이 고유의 기능을 명확히 표현하는지 점검하여, 코드의 가독성을 높이고 유지보수가 잘되도록한다.&lt;/li&gt;
+        &lt;/ol&gt;
+      &lt;/li&gt;
+    &lt;/ol&gt;
+  &lt;/li&gt;
+  &lt;li&gt;단위를 작게 유지하자라
+    &lt;ul&gt;
+      &lt;li&gt;TDD에서 단위라 함은 보통 클래스 혹은 모듈이라 불리는 관련 함수끼리의 집합으로 정의된다.&lt;/li&gt;
+      &lt;li&gt;단위를 작게했을 때의 이점
+        &lt;ul&gt;
+          &lt;li&gt;디버깅에 드는 노력 감소
+            &lt;ul&gt;
+              &lt;li&gt;테스트가 fail 났을 때, 작은 단위일수록 디버깅하기 쉽다&lt;/li&gt;
+            &lt;/ul&gt;
+          &lt;/li&gt;
+          &lt;li&gt;문서화되는 테스트
+            &lt;ul&gt;
+              &lt;li&gt;작은 테스트 케이스는 보다 읽기 쉽고 이해하기 편하다&lt;/li&gt;
+            &lt;/ul&gt;
+          &lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Dulrook Lee</name><email>dulrook@gmail.com</email></author><summary type="html">[JUnit] JUnit은 자바 프로그래밍을 위한 단위 테스트 프레임 워크 켄트 벡, 에릭 감마 등에 의해 개발되어졌으며, 최근 Stable 릴리즈는 5.3.1, 2018.09.11 테스트 주도 개발에서 중요한 역할 JUnit 4의 기능 Assertions JUnit은 모든 primitive types, objects, array에 대해 오버로드된 assertion 메소드를 제공 파라미터의 순서는 기대값, 실제값 순 (반대로 적으면 나중에 로그도 반대로 나와서 짜증남) 메소드 종류 assertArraysEquals(), assertEquals(), assertNotNull(), assertNotSame(), assertSame(), assertNull(), assertNull(), assertThat()</summary></entry><entry><title type="html">제어의 역전(IoC) 요약</title><link href="http://localhost:4000/%EC%8A%A4%ED%94%84%EB%A7%81/%EC%A0%9C%EC%96%B4%EC%9D%98-%EC%97%AD%EC%A0%84(IoC)-%EC%9A%94%EC%95%BD/" rel="alternate" type="text/html" title="제어의 역전(IoC) 요약" /><published>2019-09-07T10:51:52+09:00</published><updated>2019-09-07T10:51:52+09:00</updated><id>http://localhost:4000/%EC%8A%A4%ED%94%84%EB%A7%81/%EC%A0%9C%EC%96%B4%EC%9D%98%20%EC%97%AD%EC%A0%84(IoC)%20%EC%9A%94%EC%95%BD</id><content type="html" xml:base="http://localhost:4000/%EC%8A%A4%ED%94%84%EB%A7%81/%EC%A0%9C%EC%96%B4%EC%9D%98-%EC%97%AD%EC%A0%84(IoC)-%EC%9A%94%EC%95%BD/">&lt;h1 id=&quot;-제어의-역전ioc-&quot;&gt;[ 제어의 역전(IoC) ]&lt;/h1&gt;
+&lt;h3 id=&quot;summary&quot;&gt;Summary&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;어플리케이션을 구성하는 객체 간의 느슨합 결합을 위해 IoC를 적용한다.&lt;/li&gt;
+  &lt;li&gt;IoC가 적용되지 않은 것은 객체의 생성이나 객체 사이의 관계를 개발자가 직접 자바 코드로 처리하는 것이며, IoC가 적용되면 객체 생성 및 * 객체 간에 의존관계를 컨테이너가 대신 처리한다.
+*IoC 의 대표적인 종류는 의존관계 주입(Dependency Injection)가 있으며, 그 외에 의존관계 검색(Dependency Lookup) 이라는 개념이 있다.&lt;/li&gt;
+  &lt;li&gt;DL을 적용하면 코드 안에 오브젝트 팩토리 클래스나 스프링 API가 나타나기 때문에 코드가 깔끔해보이지 않는 단점이 있다.&lt;/li&gt;
+  &lt;li&gt;대개 DI를 사용하지만, main() 메소드에는 DI를 적용할 방법이 없기 때문에 적어도 한 번은 DL 방식을 사용하여 오브젝트를 가져와야 한다.&lt;/li&gt;
+  &lt;li&gt;DL 방식 에서는 검색하는 오브젝트는 자신이 스프링의 빈일 필요는 없지만 DI 에서는 주입을 받으려는 오브젝트가 먼저 컨테이너 관리 하에 있는 빈이되어야 한다.&lt;/li&gt;
+  &lt;li&gt;의존관계를 주입하는 방법의 종류
+    &lt;ol&gt;
+      &lt;li&gt;생성자를 이용하는 방법&lt;/li&gt;
+      &lt;li&gt;일반 메소드를 이용하는 방법
+        &lt;ul&gt;
+          &lt;li&gt;Setter 메소드 이용한 주입 : 전통적으로 스프링에서 가장 많이 사용되는 방법&lt;/li&gt;
+          &lt;li&gt;일반 메소드를 이용한 주입&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+    &lt;/ol&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Dulrook Lee</name><email>dulrook@gmail.com</email></author><summary type="html">[ 제어의 역전(IoC) ] Summary 어플리케이션을 구성하는 객체 간의 느슨합 결합을 위해 IoC를 적용한다. IoC가 적용되지 않은 것은 객체의 생성이나 객체 사이의 관계를 개발자가 직접 자바 코드로 처리하는 것이며, IoC가 적용되면 객체 생성 및 * 객체 간에 의존관계를 컨테이너가 대신 처리한다. *IoC 의 대표적인 종류는 의존관계 주입(Dependency Injection)가 있으며, 그 외에 의존관계 검색(Dependency Lookup) 이라는 개념이 있다. DL을 적용하면 코드 안에 오브젝트 팩토리 클래스나 스프링 API가 나타나기 때문에 코드가 깔끔해보이지 않는 단점이 있다. 대개 DI를 사용하지만, main() 메소드에는 DI를 적용할 방법이 없기 때문에 적어도 한 번은 DL 방식을 사용하여 오브젝트를 가져와야 한다. DL 방식 에서는 검색하는 오브젝트는 자신이 스프링의 빈일 필요는 없지만 DI 에서는 주입을 받으려는 오브젝트가 먼저 컨테이너 관리 하에 있는 빈이되어야 한다. 의존관계를 주입하는 방법의 종류 생성자를 이용하는 방법 일반 메소드를 이용하는 방법 Setter 메소드 이용한 주입 : 전통적으로 스프링에서 가장 많이 사용되는 방법 일반 메소드를 이용한 주입</summary></entry><entry><title type="html">전략 패턴(Strategy pattern)</title><link href="http://localhost:4000/%EB%94%94%EC%9E%90%EC%9D%B8%ED%8C%A8%ED%84%B4/%EC%A0%84%EB%9E%B5-%ED%8C%A8%ED%84%B4(Strategy-pattern)/" rel="alternate" type="text/html" title="전략 패턴(Strategy pattern)" /><published>2019-09-07T10:46:52+09:00</published><updated>2019-09-07T10:46:52+09:00</updated><id>http://localhost:4000/%EB%94%94%EC%9E%90%EC%9D%B8%ED%8C%A8%ED%84%B4/%EC%A0%84%EB%9E%B5%20%ED%8C%A8%ED%84%B4(Strategy%20pattern)</id><content type="html" xml:base="http://localhost:4000/%EB%94%94%EC%9E%90%EC%9D%B8%ED%8C%A8%ED%84%B4/%EC%A0%84%EB%9E%B5-%ED%8C%A8%ED%84%B4(Strategy-pattern)/">&lt;h1 id=&quot;전략-패턴&quot;&gt;[전략 패턴]&lt;/h1&gt;
+&lt;h2 id=&quot;의도intent&quot;&gt;의도(Intent)&lt;/h2&gt;
+&lt;p&gt;동일 계열의 알고리즘군을 정의하고, 각각의 알고리즘을 캡슐화한다. 그리고 각 알고리즘을 상호 교환되게 한다. 알고리즘을 사용하는 클라이언트와 상관없이 독립적으로 알고리즘을 다양하게 변경할 수 있게 한다.&lt;/p&gt;
+
+&lt;h2 id=&quot;다른-이름also-known-as&quot;&gt;다른 이름(Also Known As)&lt;/h2&gt;
+&lt;p&gt;Policy&lt;/p&gt;
+
+&lt;h2 id=&quot;동기motivation&quot;&gt;동기(Motivation)&lt;/h2&gt;
+&lt;p&gt;텍스트의 줄을 바꿔주는(Line breaking) 알고리즘은 다양하다. 그러나 이 알고리즘들을 한 클래스에 하드코딩하는 것은 다음의 이유로 바람직하지 않다:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;클라이언트는 자신의 코드에 줄바꿈 알고리즘(Line breaking algorithm)을 포함하게되면 더욱 복잡해지게 된다. 특히 클라이언트가 다양한 줄바꿈 알고리즘을 지원한다면, 더더욱 코드는 방대해지고 관리하기 어려워지게 된다.&lt;/li&gt;
+  &lt;li&gt;각 알고리즘들은 사용하기에 적합한 경우가 서로 다르다. 모든 알고리즘을 사용할것이 아니라면 여러개의 줄바꿈 알고리즘을 지원할 필요 없다.&lt;/li&gt;
+  &lt;li&gt;줄바꿈 기능이 클라이언트에 통합되어져 있다면 새로운 알고리즘을 추가하거나 기존의 알고리즘을 수정하는 것이 어려워진다.
+각각의 줄바꿈 알고리즘들을 캡슐화한 클래스를 정의하여 위와 같은 문제를 피할 수 있다. 이 방식으로 캡슐화된 알고리즘을 &lt;em&gt;전략(Strategy)&lt;/em&gt;이라고 한다.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;img src=&quot;https://user-images.githubusercontent.com/47546079/57598140-fd79cd00-758c-11e9-98b8-8dbe231c4685.png&quot; alt=&quot;3&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Composition 클래스가 텍스트 뷰어 상에 텍스트의 줄바꿈을 관리하고 업데이트하는 역할을 한다고 가정 해보자. 줄바꿈 전략들은 Compostion 클래스에 구현되어 있지 않다. 대신에 이 Compositor 추상 클래스의 서브클래스로써 서로 분리되어 구현되어져 있다. Compositor 서브클래스들은 서로 다른 전략을 구현한다:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;SimpleCompositor&lt;/strong&gt;는 한번에 한 줄씩 줄바꿈을 하는 단순한 전략을 구현한다.&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;TeXCompositor&lt;/strong&gt;는 전역적으로 줄바꿈이 최적화되도록 줄 바꿀 곳을 찾는 TEX알고리즘을 구현한다. 이 알고리즘은 한번에 한 문단 단위로 처리한다.&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;ArrayCompositor&lt;/strong&gt;는 각 행이 고정된 개수의 아이템을 갖도록 텍스트에서 줄이 바뀔 곳을 선택한다. 이 알고리즘은 예를 들어 아이콘의 집합을 한 줄로 분리할 때 유용하다.
+Composition은 Compositor 객체의 참조(reference)를 관리한다. Composition은 문서 서식화를 할때마다, Compositor 객체로 책임을 넘긴다. Composition의 클라이언트는 사용하고자 하는 Compositor를 Composition에 설치함으로써 어떤 Compositor가 사용될 것인지를 지정한다.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;활용성applicability&quot;&gt;활용성(Applicability)&lt;/h2&gt;
+&lt;p&gt;전략 패턴은 다음과 같은 상황에서 사용한다.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;개념적으로 비슷한 여러 클래스들이 서로 동작 방식만 다른 경우, 전략은 여러 동작 방식 중에서 한 가지를 클래스에 설정하는 방법을 제공한다.&lt;/li&gt;
+  &lt;li&gt;알고리즘을 다르게 변형하고자 할 때 전략 패턴을 사용한다. 예를 들어, 메모리 공간과 처리 속도간에 트레이드 오프에 따른 알고리즘을 정의하는 경우가 있다. 이때 만들어지는 다양한 알고리즘들을 상속 관계로 구현하고자 할 때 전략이 사용될 수 있다.&lt;/li&gt;
+  &lt;li&gt;클라이언트가 몰라야 할 데이터를 사용하는 알고리즘의 경우 전략 패턴이 적용될 수 있다. 알고리즘에 특정된 자료 구조와 같은 복잡한 내용의 노출을 피하기 위해 전략 패턴을 사용한다.&lt;/li&gt;
+  &lt;li&gt;클래스가 여러 가지 동작 방식을 정의하고, 이에 따라 다중 조건문이 발생되는 경우에 전략 패턴을 적용한다. 여러 조건문을 사용하는 것보다는 관련된 분기들을 전략 클래스로 옮기는 것이 좋다.
+    &lt;h2 id=&quot;구조structure&quot;&gt;구조(Structure)&lt;/h2&gt;
+    &lt;p&gt;&lt;img src=&quot;https://user-images.githubusercontent.com/47546079/57598143-fe126380-758c-11e9-8a91-a68d6a61be59.png&quot; alt=&quot;5&quot; /&gt;&lt;/p&gt;
+    &lt;h2 id=&quot;참여자participants&quot;&gt;참여자(Participants)&lt;/h2&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Strategy (Compositor)
+    &lt;ul&gt;
+      &lt;li&gt;제공되는 모든 알고리즘의 공통 인터페이스를 선언한다. 컨텍스트는 이 인터페이스를 사용하여 ConcreteStrategy에 정의된 알고리즘들을 호출할 수 있다.&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;ConcreteStrategy (SimpleCompositor, TeXCompositor, ArrayCompositor)
+    &lt;ul&gt;
+      &lt;li&gt;전략 인터페이스를 사용하여 알고리즘을 구현한다.&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Context (Composition)
+    &lt;ul&gt;
+      &lt;li&gt;ConcreteStrategy 객체를 통해 구성된다.&lt;/li&gt;
+      &lt;li&gt;전략 객체들에 대한 참조를 관리한다.&lt;/li&gt;
+      &lt;li&gt;전략 객체가 자료에 접근할 수 있도록 하는 인터페이스를 정의한다.
+        &lt;h2 id=&quot;협력-방법collaborations&quot;&gt;협력 방법(Collaborations)&lt;/h2&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;전략 클래스와 컨텍스트 클래스는 선택된 알고리즘을 구현하기 위해 서로 상호작용한다. 컨텍스트는 알고리즘이 호출되면, 알고리즘에 필요한 모든 데이터를 전략으로 보낸다. 다른 방법으로는, 컨텍스트 자체를 인자로하여 전략 클래스로 보내기도 한다. 이를 통해 전략 클래스는 필요에 따라 컨텍스트를 호출할 수 있다.&lt;/li&gt;
+  &lt;li&gt;컨텍스트는 자신의 클라이언트의 요청을 전략 클래스로 전달한다. 클라이언트는 일반적으로 ConcreteStrategy 객체를 생성하고 이를 컨텍스트로 전달한다. 그 후, 클라이언트는 오직 컨텍스트와 상호작용한다.
+    &lt;h2 id=&quot;결과consequences&quot;&gt;결과(Consequences)&lt;/h2&gt;
+    &lt;p&gt;전략 패턴은 다음과 같은 장점과 단점이 있습니다:&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;em&gt;관련된 알고리즘들의 집합(family).&lt;/em&gt; 전략 클래스들의 계층은 알고리즘의 집합 혹은 재사용을 위한 컨텍스트에서의 동작 방식을 정의한다. 즉, 상속은 알고리즘들의 공통된 기능을 추출하는데 유용하다.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;em&gt;서브클래스 방식의 대안.&lt;/em&gt; 상속은 다양한 알고리즘이나 동작 방식이 제공되도록 지원한다. 컨텍스트 클래스의 서브클래스를 직접적으로 만들어 다른 동작 방식을 부여할 수 있지만 이 방법은 동작 방식과 컨텍스트 사이에 결합도를 높인다. 알고리즘 구현과 컨텍스트의 구현이 섞이게되어, 컨텍스트를 이해하기 어렵고 유지보수의 난이도를 높이게된다. 결과적으로 알고리즘을 다양하게 변화시키기가 어려워진다. 알고리즘을 분리된 전략 클래스 내에 캡슐화함으로써 컨텍스트와 독립적으로 알고리즘을 쉽게 바꾸고, 이해하고, 확장할 수 있게된다.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;em&gt;전략은 조건문을 제거한다.&lt;/em&gt; 전략 패턴은 원하는 동작 방식을 선택하는 데에 있어서, 조건문 사용의 대안이 된다. 여러 동작 방식들이 한 클래스 내에 잔뜩있게되면, 적절한 동작 방식을 선택하기 위한 조건문을 사용하는것이 어려워진다. 분리된 전략 클래스로 동작 방식들을 캡슐화하여 조건문 사용을 제거할 수 있다.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;em&gt;구현의 선택.&lt;/em&gt; 전략은 같은 동작에 대한 여러 가지 구현 방식을 제공한다. 클라이언트는 메모리 공간과 처리 속도간의 트레이드 오프에 따라 자신에게 필요한 전략을 선택할 수 있다.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;em&gt;클라이언트는 반드시 전략들에 대해 파악하고있어야 한다.&lt;/em&gt; 클라이언트는 적절한 알고리즘 선택을 위해 모든 전략의 차이점을 이해해야한다. 이러한 점은 전략 패턴의 잠재적인 단점이 된다. 즉, 클라이언트가 구현 이슈에 노출될 수 있는 것이다. 그러므로 전략 패턴은 클라이언트가 동작 방식의 다양함과 관련이 있을때만 사용되어야 한다.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;em&gt;전략과 컨텍스트간에 의사소통 오버헤드.&lt;/em&gt; ConcreteStrategy 클래스들은 사소하건 중요하건 간에 모두 전략 인터페이스를 공유한다. 이러한 이유로 어떤 ConcreteStrategy 들은 인터페이스로부터 불필요한 데이터를 전달받기도 한다. 따라서 컨텍스트를 생성하고 사용하지도 않을 파라미터를 초기화하는데 불필요한 시간이 소요되게 된다. 이러한 이슈가 발생한다면, 전략과 컨텍스트간에 결합도를 높이도록해야 한다.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;em&gt;객체가 많아진다.&lt;/em&gt; 전략들이 늘어날수록 어플리케이션 내에 객체의 수가 증가하게 된다. 만약 이런 이슈로 오버헤드가 발생된다면 전략을 구현할 때, 컨텍스트들이 공유할 수 있으며 상태를 저장하지 않는(stateless)객체로 구현해야한다. 사용되지 않는 상태(residual state)는 컨텍스트에 의해 관리되는데, 컨텍스트는 이 불필요한 상태들을 전략 객체를 요청할 때 같이 전달한다. 공유되는 전략들은 실행되고 있는 중에는 상태를 관리하지 않아야한다. 플라이웨이트 패턴에서 이러한 접근 방식에 대해 좀 더 자세히 설명하고 있다.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;</content><author><name>Dulrook Lee</name><email>dulrook@gmail.com</email></author><summary type="html">[전략 패턴] 의도(Intent) 동일 계열의 알고리즘군을 정의하고, 각각의 알고리즘을 캡슐화한다. 그리고 각 알고리즘을 상호 교환되게 한다. 알고리즘을 사용하는 클라이언트와 상관없이 독립적으로 알고리즘을 다양하게 변경할 수 있게 한다.</summary></entry><entry><title type="html">템플릿 메소드 패턴(Template method pattern)</title><link href="http://localhost:4000/%EB%94%94%EC%9E%90%EC%9D%B8%ED%8C%A8%ED%84%B4/%ED%85%9C%ED%94%8C%EB%A6%BF-%EB%A9%94%EC%86%8C%EB%93%9C-%ED%8C%A8%ED%84%B4(Template-method-pattern)/" rel="alternate" type="text/html" title="템플릿 메소드 패턴(Template method pattern)" /><published>2019-09-06T22:45:52+09:00</published><updated>2019-09-06T22:45:52+09:00</updated><id>http://localhost:4000/%EB%94%94%EC%9E%90%EC%9D%B8%ED%8C%A8%ED%84%B4/%ED%85%9C%ED%94%8C%EB%A6%BF%20%EB%A9%94%EC%86%8C%EB%93%9C%20%ED%8C%A8%ED%84%B4(Template%20method%20pattern)</id><content type="html" xml:base="http://localhost:4000/%EB%94%94%EC%9E%90%EC%9D%B8%ED%8C%A8%ED%84%B4/%ED%85%9C%ED%94%8C%EB%A6%BF-%EB%A9%94%EC%86%8C%EB%93%9C-%ED%8C%A8%ED%84%B4(Template-method-pattern)/">&lt;h1 id=&quot;템플릿-메소드-패턴&quot;&gt;[템플릿 메소드 패턴]&lt;/h1&gt;
+&lt;h2 id=&quot;의도intent&quot;&gt;의도(Intent)&lt;/h2&gt;
+&lt;p&gt;알고리즘 연산의 골격을 정의하고, 일부 절차들을 서브클래스들에게 떠넘긴다. 템플릿 메소드는 서브 클래스들이 알고리즘의 구조를 변경없이 특정 절차들을 재정의하도록 한다.&lt;/p&gt;
+
+&lt;h2 id=&quot;동기motivation&quot;&gt;동기(Motivation)&lt;/h2&gt;
+&lt;p&gt;Application 클래스와 Document 클래스를 제공하는 프레임워크가 있다고 해보자. Application 클래스는 파일과 같이 외부 포맷으로 저장되어 있는 문서들을 불러오는 역할을 한다. 파일로부터 Document 객체를 읽어오게 되면 Document 객체는 저장하고 있는 정보를 나타낸다.&lt;/p&gt;
+
+&lt;p&gt;프레임워크로 구축한 응용 프로그램은 클래스들은 특정한 요구에 맞게 Application 클래스와 Document 클래스의 하위 클래스가 될 수 있다. 예를 들어, 그림판 프로그램은 DrawApplication 과 DrawDocument 라는 하위 클래스를 정의할 수 있고, 스프레드 시트 프로그램은 SpreadsheetApplication 과 SpreadsheetDocument 라는 하위 클래스를 정의할 수 있다.&lt;/p&gt;
+
+&lt;p&gt;추상 클래스인 Application은 문서를 열고 읽는 알고리즘인 OpenDocument()를 정의한다.
+&lt;img src=&quot;https://user-images.githubusercontent.com/47546079/57598138-fce13680-758c-11e9-8d3c-325ac475074c.png&quot; alt=&quot;1&quot; /&gt;&lt;/p&gt;
+&lt;div class=&quot;language-cpp highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Application&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;OpenDocument&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;CanOpenDocument&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;c1&quot;&gt;// cannot handle this document
+&lt;/span&gt;        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;Document&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;doc&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DoCreateDocument&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;doc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;_docs&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AddDocument&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;doc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;AboutToOpenDocument&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;doc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;doc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Open&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;doc&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DoRead&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;OpenDocument()는 문서를 열기 위한 절차들을 정의한다. 이 메소드는 문서가 열수 있는 것인지를 체크하고, Document 객체를 생성한 뒤에, 문서들의 집합에 이 객체를 추가하고, 마지막으로 파일로부터 Document 객체를 읽어온다.&lt;/p&gt;
+
+&lt;p&gt;위에서 소개한 OpenDocument가 &lt;strong&gt;템플릿 메소드&lt;/strong&gt;라는 개념에 해당한다. 템플릿 메소드는 추상화된 연산의 관점으로 알고리즘을 정의하고, 하위 클래스에서는 이를 오버라이드(override)하여 구체적인 동작을 제공한다. Application의 하위 클래스들은 문서가 열 수 있는 것인지를 체크(CanOpenDocument)하는 절차와 Document 객체를 생성(DoCreateDocument)하는 절차를 정의한다. Document 클래스들은 문서를 읽는 절차(DoRead)를 정의한다. 템플릿 메소드도 Application의 하위 클래스들이 문서가 열리기 직전을 알게(AboutToOpenDocument)하는 연산을 정의한다.&lt;/p&gt;
+
+&lt;p&gt;추상화된 연산을 이용해 알고리즘의 일부 절차를 정의함으로써, 템플릿 메소드는 실행되는 연산들의 순서를 정할 수 있다. 또한 템플릿 메소드는 Application 과 Document의 하위 클래스들이 요구에 맞게 절차들을 다양하게 할 수 있도록 한다.&lt;/p&gt;
+
+&lt;h2 id=&quot;활용성applicability&quot;&gt;활용성(Applicability)&lt;/h2&gt;
+&lt;p&gt;템플릿 메소드 패턴은 다음과 같은 경우에 사용된다.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;알고리즘의 부분 중 변하지 않는 부분을 구현하고 이 부분을 하위 클래스들이 다양한 방식으로 구현할 수 있도록 내버려두는 경우에 사용한다.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;하위 클래스들간에 공통적인 동작을 추출하여 코드의 중복을 피하고자 할 때 사용한다. 먼저 소스 코드간에 차이점을 확인하고 차이점을 새로운 연산으로 분리시킨다. 그러고나서 새로운 연산 중 하나를 호출하는 템플릿 메소드로 다른 코드를 대체시킨다.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;하위 클래스의 확장(extension)을 유연하게 다루고자 할 때 템플릿 메소드 패턴을 사용한다. 템플릿 메소드가 특정 부분에서 “훅(Hook) 오퍼레이션”을 호출하도록 정의하여 오직 그 부분에서만 확장할 수 있도록 한다. (특정을 부분을 하위 클래스가 구현을 해도 되고 안해도 될 수 있도록 한다는 뜻)&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;구조structure&quot;&gt;구조(Structure)&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&quot;https://user-images.githubusercontent.com/47546079/57598139-fd79cd00-758c-11e9-92f1-b62f220fae6b.png&quot; alt=&quot;2&quot; /&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;참여자participant&quot;&gt;참여자(Participant)&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;AbstractClass (Application)
+    &lt;ul&gt;
+      &lt;li&gt;기초 연산들을 추상화하고, 이를 하위 클래스에서 구체적으로 구현하도록 한다.&lt;/li&gt;
+      &lt;li&gt;알고리즘의 뼈대를 정의하는 템플릿 메소드를 구현한다. 템플릿 메소드는 기초 연산들을 호출한다.&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;ConcreteClass (MyApplication)
+    &lt;ul&gt;
+      &lt;li&gt;추상화된 기초 연산들을 구체적으로 구현하여 하위 클래스별로 특정한 알고리즘이 수행되도록 한다.
+협력 방법(Collaborations)
+ConcreteClass는 알고리즘의 변하지 않는 순서를 구현하기 위해 AbstractClass에 의존적이다.
+        &lt;h2 id=&quot;결과consequences&quot;&gt;결과(Consequences)&lt;/h2&gt;
+        &lt;p&gt;템플릿 메소드는 코드 재사용의 근본적인 기술이다. 템플릿 메소드는 라이브러리 클래스들의 공통 부분을 뽑아내기 때문에 클래스 라이브러리에 특히 중요하다.&lt;/p&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;템플릿 메소드는 역전된 제어 구조를 이끌어낸다.&lt;/p&gt;
+
+&lt;p&gt;템플릿 메소드는 다음과 같은 종류의 연산을 호출한다:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;구체적인 연산 (ConcreteClass 혹은 클라이언트 class 상의 연산)&lt;/li&gt;
+  &lt;li&gt;구체적인 AbstractClass 연산&lt;/li&gt;
+  &lt;li&gt;기초적인 연산&lt;/li&gt;
+  &lt;li&gt;팩토리 메소드&lt;/li&gt;
+  &lt;li&gt;&lt;em&gt;훅 오퍼레이션&lt;/em&gt;, 하위 클래스에서 필요에 따라 확장할 수 있도록 하는 연산. 보통 훅 오퍼레이션의 기본값은 ‘아무것도 하지 않음’ 이다.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;템플릿 메소드에서 어떤 연산을 훅으로 할 지(오버라이드 할 수 도 있는), 어떤 연산을 추상화된 연산(반드시 오버라이드 해야하는)으로 정의할 지 정하는 것은 중요하다. 추상 클래스를 효과적으로 재사용하기 위해서, 하위클래스 작성자는 어떤 연산이 오버라이딩을 위해 설계되었는지를 반드시 이해하여야 한다.&lt;/p&gt;
+
+&lt;p&gt;하위 클래스는 오버라이딩을 통해 부모 클래스의 연산을 확장할 수 있다:&lt;/p&gt;
+&lt;div class=&quot;language-cpp highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DerivedClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Operation&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; 
+&lt;span class=&quot;n&quot;&gt;ParentClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Operation&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;();&lt;/span&gt; 
+&lt;span class=&quot;c1&quot;&gt;// DerivedClass extends behavior 
+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;불행하게도 상속된 연산을 호출해야하는 사실을 깜빡하기 쉽다. 그래서 그러한 연산들을 템플릿 메소드로 넣고 부모 클래스가 이 연산들을 하위 클래스에서 어떻게 확장해야할 지를 제어하도록 한다. 즉, 아이디어는 부모 클래스 내에 템플릿 메소드로부터 훅 오퍼레이션을 호출하는 것이다. 그러고나면 하위클래스들은 이 훅 오퍼레이션을 다음과 같이 오버라이드 할 수 있다:&lt;/p&gt;
+&lt;div class=&quot;language-cpp highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ParentClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Operation&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; 
+&lt;span class=&quot;c1&quot;&gt;// ParentClasss behavior 
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;HookOperation&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt; 
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;훅 오퍼레이션(HookOperation)은 부모 클래스에서 아무동작도 하지않는다:&lt;/p&gt;
+&lt;div class=&quot;language-cpp highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ParentClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;HookOperaetion&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;하위클래스는 동작을 확장하기 위해 훅 오퍼레이션을 오버라이드한다:&lt;/p&gt;
+&lt;div class=&quot;language-cpp highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DerivedClass&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;HookOperation&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; 
+&lt;span class=&quot;c1&quot;&gt;// derived class extension 
+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;hr /&gt;</content><author><name>Dulrook Lee</name><email>dulrook@gmail.com</email></author><summary type="html">[템플릿 메소드 패턴] 의도(Intent) 알고리즘 연산의 골격을 정의하고, 일부 절차들을 서브클래스들에게 떠넘긴다. 템플릿 메소드는 서브 클래스들이 알고리즘의 구조를 변경없이 특정 절차들을 재정의하도록 한다.</summary></entry></feed>

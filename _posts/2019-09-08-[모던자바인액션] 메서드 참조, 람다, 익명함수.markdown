@@ -1,14 +1,12 @@
 ---
-layout: post
+layout: posts
 title:  "[모던자바인액션] 메서드 참조, 람다, 익명함수"
 date:   2019-09-08 00:07:00 +0900
 categories: 자바
 ---
 
 ## Functions in Java
-
 ### 메서드 참조(Method reference)
-
 디렉토리에서 숨겨진 파일들을 필터링 하는 프로그램을 만든다고 했을 때, 기존 방식(자바8 이전)으로는 다음과 같이 구현할 수 있다.
 
 ```Java

@@ -1,0 +1,175 @@
+<h2 id="functions-in-java">Functions in Java</h2>
+<h3 id="메서드-참조method-reference">메서드 참조(Method reference)</h3>
+<p>디렉토리에서 숨겨진 파일들을 필터링 하는 프로그램을 만든다고 했을 때, 기존 방식(자바8 이전)으로는 다음과 같이 구현할 수 있다.</p>
+
+<pre><code class="language-Java">File[] hiddenFiles = new File(".").listFiles(new FileFilter() {
+      @Override
+      public boolean accept(File pathname) {
+            return pathname.isHidden();
+      }
+});
+</code></pre>
+
+<p>위의 코드를 이해하기 위해 <em>java.io.File</em> 과 <em>java.io.FileFilter</em>에 대한 문서를 참조해보면 아래와 같다.</p>
+<blockquote>
+  <p><em>Constructors</em></p>
+
+  <p><strong>File(String pathname)</strong><br />
+Creates a new File instance by converting the given pathname string into an abstract pathname.</p>
+</blockquote>
+
+<blockquote>
+  <p><em>Methods</em><br />
+Modifier and Type | Method and Description<br />
+|–|–|
+File[]|<code class="highlighter-rouge">listFiles</code>( ) <br /> Returns an array of abstract pathnames denoting the files in the directory denoted by this abstract pathname.
+File[]|<code class="highlighter-rouge">listFiles</code>(<code class="highlighter-rouge">FileFilter</code> filter) <br /> Returns an array of abstract pathnames denoting the files and directories in the directory denoted by this abstract pathname that satisfy the specified filter.
+File[]|<code class="highlighter-rouge">listFiles</code>(<code class="highlighter-rouge">FilenameFilter</code> filter) <br /> Returns an array of abstract pathnames denoting the files and directories in the directory denoted by this abstract pathname that satisfy the specified filter.
+boolean |<code class="highlighter-rouge">isHidden</code>( ) <br /> Tests whether the file named by this abstract pathname is a hidden file.</p>
+</blockquote>
+
+<p>File 클래스에는 File의 배열형태로 리턴하는 <code class="highlighter-rouge">listFiles</code>( ) 메서드로 3가지의 다형성이 존재한다. 아무런 인자를 받지 않고 디렉토리에 존재하는 파일들을 배열로 담아 리턴하거나, <code class="highlighter-rouge">FileFilter</code> 또는 <code class="highlighter-rouge">FilenameFilter</code> 를 인자로 받아 조건에 따라 필터링된 파일들만을 배열로 담아 리턴한다. 이 중에서 <code class="highlighter-rouge">FileFilter</code>는 Java.io 패키지에서 아래와 같이 구현되어있다.</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cm">/**
+ * A filter for abstract pathnames.
+ *
+ * &lt;p&gt; Instances of this interface may be passed to the &lt;code&gt;{@link
+ * File#listFiles(java.io.FileFilter) listFiles(FileFilter)}&lt;/code&gt; method
+ * of the &lt;code&gt;{@link java.io.File}&lt;/code&gt; class.
+ *
+ * @since 1.2
+ */</span>
+<span class="nd">@FunctionalInterface</span>
+<span class="kd">public</span> <span class="kd">interface</span> <span class="nc">FileFilter</span> <span class="o">{</span>
+
+    <span class="cm">/**
+     * Tests whether or not the specified abstract pathname should be
+     * included in a pathname list.
+     *
+     * @param  pathname  The abstract pathname to be tested
+     * @return  &lt;code&gt;true&lt;/code&gt; if and only if &lt;code&gt;pathname&lt;/code&gt;
+     *          should be included
+     */</span>
+    <span class="kt">boolean</span> <span class="nf">accept</span><span class="o">(</span><span class="n">File</span> <span class="n">pathname</span><span class="o">);</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>먼저 <code class="highlighter-rouge">@FunctionalInterface</code>는 람다를 쓰기 위해 자바8 부터 도입된 애노테이션이다. 모든 함수형 인터페이스 <em>(하나의 추상 메서드만(SAM, Single Abstract Method)을 갖는 인터페이스로 보통 람다 표현식으로 다뤄진다)</em> 에는 이 애노테이션을 사용할 것을 권장한다. 해당 인터페이스의 목적을 명확하게 명시함으로써 커뮤니케이션을 분명하게 할 수 있고, 이 애노테이션이 붙은 인터페이스에 추상 메서드가 2개 이상 선언되어있으면 컴파일러가 에러를 생성할 수 있도록 하는 장점이 있기 때문이다.</p>
+
+<blockquote>
+  <p><em>람다에 대해 ..</em><br />
+람다는 익명 함수로써 일급 시민으로 취급된다, 즉, 메서드에 전달되거나 메서드로부터 리턴될 수 있다. <br />
+자바8 이전에는 하나의 기능 조각에 대해 캡슐화가 필요할 때 마다 매번  클래스를 생성했어야 했다. 그래서 불필요한 코드들이 많이 생겨나는 문제점이 있었다.</p>
+</blockquote>
+
+<p>어쨌든 람다에 대한 이야기는 잠시 뒤로 미뤄놓고, 위에 작성된 숨겨진 파일들을 찾아내는 소스 코드를 살펴보면 이 <code class="highlighter-rouge">FileFilter</code> 라는 인터페이스를 인자로 받는 <code class="highlighter-rouge">listFiles</code>() 메서드를 사용하고 있고, <code class="highlighter-rouge">FileFilter</code>의 <code class="highlighter-rouge">accept</code>()를 <code class="highlighter-rouge">isHidden</code>() 라는 조건을 사용하여 구현하고 있는 형태가 된다.</p>
+
+<p>그리고 이제 위의 소스코드는 자바8에서 아래와 같이 표현할 수 있게된다.</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">File</span><span class="o">[]</span> <span class="n">hiddenFiles</span> <span class="o">=</span> <span class="k">new</span> <span class="n">File</span><span class="o">(</span><span class="s">"."</span><span class="o">).</span><span class="na">listFiles</span><span class="o">(</span><span class="nl">File:</span><span class="o">:</span><span class="n">isHidden</span><span class="o">);</span>
+</code></pre></div></div>
+<p>기존에 자바에서 new로 객체 참조를 생성하여 객체를 주고 받았던것과같이 자바8 에서는 메서드 참조를 만들어 전달하는 것이다. 다시 말해 자바8의 <strong>메서드 참조</strong>는 <strong>::</strong> 라는 기호를 사용하여 <code class="highlighter-rouge">File</code> 클래스의 <code class="highlighter-rouge">isHidden</code>() 메서드를 참조할 수 있게한다. 따라서 위 경우에서 <code class="highlighter-rouge">FileFilter</code> 함수형 인터페이스의 메서드 리턴 타입과 <code class="highlighter-rouge">isHidden</code>()의 리턴 타입이 boolean으로 동일하므로 코드 자체를 전달되는것 이다.</p>
+
+<h3 id="코드-넘겨주기-예제">코드 넘겨주기 예제</h3>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">java.util.ArrayList</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">java.util.List</span><span class="o">;</span>
+
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">Main</span> <span class="o">{</span>
+
+    <span class="kd">static</span> <span class="kd">class</span> <span class="nc">Stock</span> <span class="o">{</span>
+        <span class="n">String</span> <span class="n">name</span><span class="o">;</span>
+        <span class="kt">int</span> <span class="n">price</span><span class="o">;</span>
+        <span class="n">String</span> <span class="n">type</span><span class="o">;</span>
+
+        <span class="n">Stock</span><span class="o">(</span><span class="n">String</span> <span class="n">name</span><span class="o">,</span> <span class="kt">int</span> <span class="n">price</span><span class="o">,</span> <span class="n">String</span> <span class="n">type</span><span class="o">)</span> <span class="o">{</span>
+            <span class="k">this</span><span class="o">.</span><span class="na">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">;</span>
+            <span class="k">this</span><span class="o">.</span><span class="na">price</span> <span class="o">=</span> <span class="n">price</span><span class="o">;</span>
+            <span class="k">this</span><span class="o">.</span><span class="na">type</span> <span class="o">=</span> <span class="n">type</span><span class="o">;</span>
+        <span class="o">}</span>
+        <span class="n">String</span> <span class="nf">getName</span><span class="o">()</span> <span class="o">{</span>
+            <span class="k">return</span> <span class="n">name</span><span class="o">;</span>
+        <span class="o">}</span>
+        <span class="kt">int</span> <span class="nf">getPrice</span><span class="o">()</span> <span class="o">{</span>
+            <span class="k">return</span> <span class="n">price</span><span class="o">;</span>
+        <span class="o">}</span>
+        <span class="n">String</span> <span class="nf">getType</span><span class="o">()</span> <span class="o">{</span>
+            <span class="k">return</span> <span class="n">type</span><span class="o">;</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+
+    <span class="c1">/////////////////////////////////////////////////////////////////////////// Old style ---&gt;</span>
+    <span class="kd">public</span> <span class="kd">static</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">Stock</span><span class="o">&gt;</span> <span class="nf">filterKospiStock</span><span class="o">(</span><span class="n">List</span><span class="o">&lt;</span><span class="n">Stock</span><span class="o">&gt;</span> <span class="n">stockList</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">List</span><span class="o">&lt;</span><span class="n">Stock</span><span class="o">&gt;</span> <span class="n">filteredStockList</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;&gt;();</span>
+        <span class="k">for</span> <span class="o">(</span><span class="n">Stock</span> <span class="n">stock</span> <span class="o">:</span> <span class="n">stockList</span><span class="o">)</span> <span class="o">{</span>
+            <span class="k">if</span><span class="o">(</span><span class="s">"KOSPI"</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">stock</span><span class="o">.</span><span class="na">getType</span><span class="o">()))</span> <span class="o">{</span>
+                <span class="n">filteredStockList</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">stock</span><span class="o">);</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+        <span class="k">return</span> <span class="n">filteredStockList</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="kd">static</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">Stock</span><span class="o">&gt;</span> <span class="nf">filterExpensiveStock</span><span class="o">(</span><span class="n">List</span><span class="o">&lt;</span><span class="n">Stock</span><span class="o">&gt;</span> <span class="n">stockList</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">List</span><span class="o">&lt;</span><span class="n">Stock</span><span class="o">&gt;</span> <span class="n">filteredStockList</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;&gt;();</span>
+        <span class="k">for</span> <span class="o">(</span><span class="n">Stock</span> <span class="n">stock</span> <span class="o">:</span> <span class="n">stockList</span><span class="o">)</span> <span class="o">{</span>
+            <span class="k">if</span><span class="o">(</span><span class="n">stock</span><span class="o">.</span><span class="na">getPrice</span><span class="o">()</span> <span class="o">&gt;=</span> <span class="mi">1_000_000</span><span class="o">)</span> <span class="o">{</span>
+                <span class="n">filteredStockList</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">stock</span><span class="o">);</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+        <span class="k">return</span> <span class="n">filteredStockList</span><span class="o">;</span>
+    <span class="o">}</span>
+    <span class="c1">/////////////////////////////////////////////////////////////////////////// Old style &lt;---</span>
+
+
+    <span class="c1">/////////////////////////////////////////////////////////////////////////// Modern style ---&gt;</span>
+    <span class="kd">interface</span> <span class="nc">Predicate</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">{</span>
+        <span class="kt">boolean</span> <span class="nf">test</span><span class="o">(</span><span class="n">T</span> <span class="n">t</span><span class="o">);</span>
+    <span class="o">}</span>
+
+    <span class="kd">static</span> <span class="kt">boolean</span> <span class="nf">isKospi</span><span class="o">(</span><span class="n">Stock</span> <span class="n">stock</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="s">"KOSPI"</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">stock</span><span class="o">.</span><span class="na">getType</span><span class="o">());</span>
+    <span class="o">}</span>
+
+    <span class="kd">static</span> <span class="kt">boolean</span> <span class="nf">isExpensive</span><span class="o">(</span><span class="n">Stock</span> <span class="n">stock</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">stock</span><span class="o">.</span><span class="na">getPrice</span><span class="o">()</span> <span class="o">&gt;=</span> <span class="mi">1_000_000</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="kd">static</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">Stock</span><span class="o">&gt;</span> <span class="nf">filterStock</span><span class="o">(</span><span class="n">List</span><span class="o">&lt;</span><span class="n">Stock</span><span class="o">&gt;</span> <span class="n">stockList</span><span class="o">,</span> <span class="n">Predicate</span><span class="o">&lt;</span><span class="n">Stock</span><span class="o">&gt;</span> <span class="n">p</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">List</span><span class="o">&lt;</span><span class="n">Stock</span><span class="o">&gt;</span> <span class="n">filteredStockList</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;&gt;();</span>
+        <span class="k">for</span> <span class="o">(</span><span class="n">Stock</span> <span class="n">stock</span> <span class="o">:</span> <span class="n">stockList</span><span class="o">)</span> <span class="o">{</span>
+            <span class="k">if</span><span class="o">(</span><span class="n">p</span><span class="o">.</span><span class="na">test</span><span class="o">(</span><span class="n">stock</span><span class="o">))</span> <span class="o">{</span>
+                <span class="n">filteredStockList</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">stock</span><span class="o">);</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+        <span class="k">return</span> <span class="n">filteredStockList</span><span class="o">;</span>
+    <span class="o">}</span>
+    <span class="c1">/////////////////////////////////////////////////////////////////////////// Modern style &lt;---</span>
+
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">List</span><span class="o">&lt;</span><span class="n">Stock</span><span class="o">&gt;</span> <span class="n">stockList</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;&gt;();</span>
+        <span class="n">stockList</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="k">new</span> <span class="n">Stock</span><span class="o">(</span><span class="s">"A"</span><span class="o">,</span> <span class="mi">500000</span><span class="o">,</span> <span class="s">"KOSPI"</span><span class="o">));</span>
+        <span class="n">stockList</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="k">new</span> <span class="n">Stock</span><span class="o">(</span><span class="s">"B"</span><span class="o">,</span> <span class="mi">50000</span><span class="o">,</span> <span class="s">"KOSDAQ"</span><span class="o">));</span>
+        <span class="n">stockList</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="k">new</span> <span class="n">Stock</span><span class="o">(</span><span class="s">"C"</span><span class="o">,</span> <span class="mi">1000000</span><span class="o">,</span> <span class="s">"KOSDAQ"</span><span class="o">));</span>
+        <span class="n">stockList</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="k">new</span> <span class="n">Stock</span><span class="o">(</span><span class="s">"D"</span><span class="o">,</span> <span class="mi">2000000</span><span class="o">,</span> <span class="s">"KOSPI"</span><span class="o">));</span>
+
+        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">filterKospiStock</span><span class="o">(</span><span class="n">stockList</span><span class="o">).</span><span class="na">containsAll</span><span class="o">(</span><span class="n">filterStock</span><span class="o">(</span><span class="n">stockList</span><span class="o">,</span> <span class="nl">Main:</span><span class="o">:</span><span class="n">isKospi</span><span class="o">)));</span> <span class="c1">// True</span>
+        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">filterExpensiveStock</span><span class="o">(</span><span class="n">stockList</span><span class="o">).</span><span class="na">containsAll</span><span class="o">(</span><span class="n">filterStock</span><span class="o">(</span><span class="n">stockList</span><span class="o">,</span> <span class="nl">Main:</span><span class="o">:</span><span class="n">isExpensive</span><span class="o">)));</span> <span class="c1">// True</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+
+
+
+</code></pre></div></div>
+
+<h3 id="메서드-전달에서-람다로">메서드 전달에서 람다로</h3>
+
+<p>메서드를 값으로 전달함으로써 중복되는 코드 구현을 줄일수어 유용하지만, 한 두번만 사용되는 isKospi 나 isExpensive와 같은 짧은 메서드를 일일히 정의하는 것은 귀찮은 일이된다. 그래서 익명 함수 또는 람다라는 새로운 개념을 이용하면 단순히 아래처럼 코드를 작성할 수 있다.</p>
+
+<div class="language-java highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">filterStock</span><span class="o">(</span><span class="n">stockList</span><span class="o">,</span> <span class="o">(</span><span class="n">Stock</span> <span class="n">s</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="s">"KOSPI"</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">s</span><span class="o">.</span><span class="na">getType</span><span class="o">()));</span>
+<span class="n">filterStock</span><span class="o">(</span><span class="n">stockList</span><span class="o">,</span> <span class="o">(</span><span class="n">Stock</span> <span class="n">s</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">s</span><span class="o">.</span><span class="na">getPrice</span><span class="o">()</span> <span class="o">&gt;=</span> <span class="mi">1_000_000</span><span class="o">);</span>
+
+<span class="c1">// Also even</span>
+<span class="n">filterStock</span><span class="o">(</span><span class="n">stockList</span><span class="o">,</span> <span class="o">(</span><span class="n">Stock</span> <span class="n">s</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="s">"KOSPI"</span><span class="o">.</span><span class="na">equals</span><span class="o">(</span><span class="n">s</span><span class="o">.</span><span class="na">getType</span><span class="o">())</span> <span class="o">||</span> <span class="n">s</span><span class="o">.</span><span class="na">getPrice</span><span class="o">()</span> <span class="o">&gt;=</span> <span class="mi">1_000_000</span><span class="o">);</span>
+</code></pre></div></div>
+
+<p>위와 같이 짧은 코드로 작성될 메서드는 일일히 정의하여, 어디에 구현되어있는지 굳이 찾을필요 없이 간편하게 익명 람다를 사용하는것이 유용하다. 하지만 메서드의 길이가 다소 길어진다면 어떤 기능을 하는지 명확한 이름을 가진 메서드로 정의하는것이 바람직하다.</p>
