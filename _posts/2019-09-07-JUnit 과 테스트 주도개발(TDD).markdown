@@ -1,0 +1,297 @@
+---
+layout: post
+title:  "JUnit 과 테스트 주도개발(TDD)"
+date:   2019-09-07 10:54:52 +0900
+categories: 테스트
+---
+
+## [JUnit]
+* JUnit은 자바 프로그래밍을 위한 단위 테스트 프레임 워크
+  * 켄트 벡, 에릭 감마 등에 의해 개발되어졌으며, 최근 Stable 릴리즈는 5.3.1, 2018.09.11
+  * 테스트 주도 개발에서 중요한 역할
+* JUnit 4의 기능
+  * **Assertions**
+    * JUnit은 모든 primitive types, objects, array에 대해 오버로드된 assertion 메소드를 제공
+    * 파라미터의 순서는 기대값, 실제값 순 (반대로 적으면 나중에 로그도 반대로 나와서 짜증남)
+    * 메소드 종류
+      * assertArraysEquals(), assertEquals(), assertNotNull(), assertNotSame(), assertSame(), assertNull(), assertNull(), assertThat()
+
+  * **Test Runners**
+    * 이클립스, IntelliJ Idea 등 IDE에는 네이티브의 그래픽컬한 test runner가 내장 되어 있음
+    * @RunWith annotation
+      * 클래스에 @RuntWith 가 붙어있으면, JUnit은 내장된 runner 대신에 어노테이션이 참조하는 클래스를 호출함
+      * 디폴트 Runner는 BlockJUnit4ClassRunner 
+      * ex: @RunWith(SpringJUnit4ClassRunner.class)
+  * **Aggregating tests in Suites**
+    * Suite 를 runner로 사용하여 여러 테스트 클래스들을 합칠 수 있다
+      * RunWith(Suite.class) and @SuiteClass(TestClass1.class, ...)
+    * Suite 클래스를 실행하면 이 클래스에 포함된 모든 테스트가 실행됨
+    * Example 
+      ```java
+      import org.junit.runner.RunWith;
+      import org.junit.runners.Suite;
+ 
+      @RunWith(Suite.class)
+      @Suite.SuiteClasses({
+        TestFeatureLogin.class,
+        TestFeatureLogout.class,
+        TestFeatureNavigate.class,
+        TestFeatureUpdate.class
+      })
+ 
+      public class FeatureTestSuite {
+        // the class remains empty,
+        // used only as a holder for the above annotations
+      }
+      ```
+
+  * **Test Execution Order**
+    * 물론 잘 만들어진 테스트 코드는 실행되는 순서를 가정할 필요 없지만, 특정 플랫폼에서는 순서를 정해놓는게 좋을 수도 있음
+    * 클래스에 @FixMethodOrder 어노테이션을 달고 MethodSorters를 지정하여 실행 순서를 변경할 수 있음
+    * @FixmethodOrder(MethodSorters.JVM) : JVM에 의해 리턴되는 순서에 따라 테스트가 실행되게 냅둔다. (실행할 때 마다 순서 달라짐)
+    * @FixmethodOrder(MethodSorters.NAME_ASCENDING) : 이름순으로 메소드를 정렬하여 실행
+    * Example
+      ```java
+      import org.junit.FixMethodOrder;
+      import org.junit.Test;
+      import org.junit.runners.MethodSorters;
+ 
+      @FixMethodOrder(MethodSorters.NAME_ASCENDING)
+      public class TestMethodOrder {
+ 
+          @Test
+          public void testA() {
+              System.out.println("first");
+          }
+          @Test
+          public void testB() {
+              System.out.println("second");
+          }
+          @Test
+          public void testC() {
+              System.out.println("third");
+          }
+      }
+      ```
+  * **Exception Testing**
+    * 코드가 정상적으로 실행되는지를 테스트하는 것도 중요하지만, 코드가 어떤 상황에서 어떤 예외를 발생시키는지에 대해 정확히 파악하는 것도 중요함
+    * 예를 들어, 아래 코드는 IndexOutOfBoundsException 예외를 발생시킨다.
+      ```java
+      new ArrayList<Object>().get(0);
+      ``` 
+      그렇다면 다음과 같은 테스트 코드를 작성해볼 수 있다
+      ```java
+      @Test(expected = IndexOutOfBoundsException.class)
+      public void empty() {
+           new ArrayList<Object>().get(0);
+      }
+      ```
+  * **Matchers and assertThat**
+    * Joe Walnes 라는 사람이 asserThat 이라는 이름의 메소드를 고안했는데, 문법은 대략 아래와 같다
+      ```java
+      assertThat(x, is(3));
+      assertThat(x, is(not(4)));
+      assertThat(responseString, either(containsString("color")).or(containsString("colour")));
+      assertThat(myList, hasItem("3"));
+      ```
+      더 일반적으로 표현하면,
+      ```java
+      assertThat([value], [matcher statement]);
+      ```
+    * 이런 assertion 문법의 장점
+      * 가독성이 좋고, 타입을 지정하기 쉽다
+        * assertEquals는 동사,목적어,주어순(assert "equals 3 x")으로 읽히지만 assertThat은 주어,동사,목적어 순(assert "x is 3")으로 읽힌다 (영어쓰는 애들한테는 훨씬 직관적인듯)
+      * 응용하기 좋음
+        * matcher 문들은 부정( not(s) ), 결합( either(s).or(t) ), 콜렉션에 맵핑 ( each(s) )등을 사용할 수 있음
+      * 테스트가 실패했을 때 매세지가 더 읽기 좋음
+        ```java
+        assertTrue(responseString.contains("color") || responseString.contains("colour"));
+        // ==> failure message:
+        // java.lang.AssertionError:
+ 
+ 
+        assertThat(responseString, anyOf(containsString("color"), containsString("colour")));
+        // ==> failure message:
+        // java.lang.AssertionError:
+        // Expected: (a string containing "color" or a string containing "colour")
+        //      got: "Please choose a font"
+        ```
+      * 다양한 matcher 들의 호환성을 위해 Hamcrest 프로젝트의 hamcrest-core 클래스를 JUnit 프레임워크에 포함하기로 결정하였는데, 이는 서드파티 클래스가 JUnit에 포함된 첫번째 사례다.
+  * **Ignoring Tests**
+    * 뭐 어떤 이유로 테스트가 실패되지 않길 원한다면 특정 메소드를 임시로 disable할 수 있다
+    * @Test 어노테이션을 삭제하는 방법도 있겠지만, @Ignore 를 추가로 달아주는 방법이 있다. Test runner는 무시된 테스트의 개수를 보고할 것이다.
+  * **Timeout for Tests**
+    * 너무 실행이 오래걸리는 테스트의 경우 자동으로 fail 처리할 수 있다. 이 기능을 구현하는데는 두가지 방법이 있음
+    * @Test 어노테이션에 Timeout 파라미터 삽입
+      ```java
+      @Test(timeout=1000)
+      public void testWithTimeout() {
+      ...
+      }
+      ```
+    * Timeout Rule
+      * 클래스 내에 모든 테스트에 같은 타임아웃을 적용하고 싶을 때 Timeout Rule을 적용해볼 수 있다
+        ```java
+        import org.junit.Rule;
+        import org.junit.Test;
+        import org.junit.rules.Timeout;
+ 
+        public class HasGlobalTimeout {
+            public static String log;
+            private final CountDownLatch latch = new CountDownLatch(1);
+ 
+            @Rule
+            public Timeout globalTimeout = Timeout.seconds(10); // 10 seconds max per method tested
+ 
+            @Test
+            public void testSleepForTooLong() throws Exception {
+                log += "ran1";
+                TimeUnit.SECONDS.sleep(100); // sleep for 100 seconds
+            }
+ 
+            @Test
+            public void testBlockForever() throws Exception {
+                log += "ran2";
+                latch.await(); // will block
+            }
+        }
+        ```
+  * **Parameterized Tests**
+    * 커스텀 runner인 Parameterized를 사용하여 같은 테스트를 여러 파라미터 값들로 여러번 실행할 수 있다
+    * Parameterized 테스트 클래스를 실행하면 인스턴스들에 테스트 메소드와 테스트 데이터 값들이 생성된다
+    * 피보나치 수열을 예로들면,
+      ```java
+      import static org.junit.Assert.assertEquals;
+ 
+      import java.util.Arrays;
+      import java.util.Collection;
+ 
+      import org.junit.Test;
+      import org.junit.runner.RunWith;
+      import org.junit.runners.Parameterized;
+      import org.junit.runners.Parameterized.Parameters;
+ 
+      @RunWith(Parameterized.class)
+      public class FibonacciTest {
+          @Parameters
+          public static Collection<Object[]> data() {
+              return Arrays.asList(new Object[][] {    
+                       { 0, 0 }, { 1, 1 }, { 2, 1 }, { 3, 2 }, { 4, 3 }, { 5, 5 }, { 6, 8 } 
+                 });
+          }
+ 
+          private int fInput;
+ 
+          private int fExpected;
+ 
+          public FibonacciTest(int input, int expected) {
+              this.fInput = input;
+              this.fExpected = expected;
+          }
+ 
+          @Test
+          public void test() {
+              assertEquals(fExpected, Fibonacci.compute(fInput));
+          }
+      }
+ 
+      public class Fibonacci {
+          public static int compute(int n) {
+              int result = 0;
+         
+              if (n <= 1) {
+                  result = n;
+              } else {
+                  result = compute(n - 1) + compute(n - 2);
+              }
+         
+              return result;
+          }
+      }
+      ```
+      Fibonacci Test의 각 인스턴스들은 두 개의 인자를 갖는 생성자를 통해 생성될 것이며, 이때 파라미터로 넘어가는 값들은 @Parameters 메소드 내에 있는 것이 사용된다
+
+  * **Rules**
+    * Rules 를 사용하면 테스트 클래스내에 메소들의 기능을 재정의하거나 유연하게 추가할 수 있게됨
+    * Example
+      ```java
+      public class DigitalAssetManagerTest {
+        @Rule
+        public final TemporaryFolder tempFolder = new TemporaryFolder();
+ 
+        @Rule
+        public final ExpectedException exception = ExpectedException.none();
+ 
+        @Test
+        public void countsAssets() throws IOException {
+          File icon = tempFolder.newFile("icon.png");
+          File assets = tempFolder.newFolder("assets");
+          createAssets(assets, 3);
+ 
+          DigitalAssetManager dam = new DigitalAssetManager(icon, assets);
+          assertEquals(3, dam.getAssetCount());
+        }
+ 
+        private void createAssets(File assets, int numberOfAssets) throws IOException {
+          for (int index = 0; index < numberOfAssets; index++) {
+            File asset = new File(assets, String.format("asset-%d.mpg", index));
+            Assert.assertTrue("Asset couldn't be created.", asset.createNewFile());
+          }
+        }
+ 
+        @Test
+        public void throwsIllegalArgumentExceptionIfIconIsNull() {
+          exception.expect(IllegalArgumentException.class);
+          exception.expectMessage("Icon is null, not a file, or doesn't exist.");
+          new DigitalAssetManager(null, null);
+        }
+      }
+      ```
+
+    * https://github.com/junit-team/junit4/wiki/Rules 참조
+  * **TestFixtures**
+    * 테스트 픽스쳐는 테스트 실행에 기준값으로 사용되는 객체 집합의 고정된 상태이다. 즉 테스트 픽스쳐의 목적은 테스트들이 실행될 때 고정된 환경을 보장하고자 하는것이다.
+    * 픽스쳐의 예
+      * mock 객체의 입력 데이터 및 setup/creation 준비
+      * 특정한 데이터베이스 로딩
+    * 픽스쳐의 종류
+      * @BeforeClass
+      * @AfterClass
+      * @Before
+      * @After
+
+***
+
+## [TDD]
+![1](https://user-images.githubusercontent.com/47546079/57599307-3156f180-7591-11e9-82c6-2f7e96acf7f6.png)
+
+* TDD 란?
+  * TDD는 먼저 테스트 케이스를 작성하고나서 이를 통과시키기 위한 코드 일부분을 개발해나가는 프로세스를 말함
+* TDD Cycle
+  1. 테스트를 생성한다
+      1. TDD 에서는 새로운 기능을 추가할 때마다 테스트를 먼저 작성한다.
+      2. 테스트 작성을 위해 개발자는 반드시 기능의 스펙과 요구사항에 대해 확실히 이해해야한다.
+      3. 개발자는 유즈 케이스나 유저 스토리등을 통해 요구사항과 예외 조건등에 대해 파악하고 적절한 테스트 프레임워크를 사용하여 테스트를 작성한다
+  2. 모든 테스트를 실행해보고, 새로운 테스트가 fail인지 확인한다
+      1. 모든 테스트가 통과되는지 확인하고, 새로 추가한 테스트 코드가 fail 됨을 확인한다.
+      2. 이 과정을 통해 테스트 코드가 잘못 코딩되어서 항상 pass 되는 경우를 배제할 수 있다.
+      3. 테스트의 fail은 예상 된 이유로 실패해야 된다.
+  3. 코드를 작성한다
+      1. 위에서 작성한 테스트 코드가 통과되기 위한 소스 코드를 작성한다
+      2. 이 단계에서 작성된 코드는 완벽하지 않아도 된다. 왜냐하면 Step5 에서 발전시킬거니까.
+      3. 오로지 테스트를 통과시키는게 작성된 코드의 목적이다.
+      4. 개발자는 이때 테스트 체크를 위한 기능을 넘어서는 코드 작성을 해서는 안된다.
+  4. 테스트를 실행한다
+      1. 모든 테스트 케이스가 통과한다면, 개발자는 새로운 코드에 대해 안심할 수 있다.
+  5. 코드를 리팩토링한다
+      1. 중복되는 부분은 제거한다.
+      2. 오브젝트, 클래스, 모듈, 변수, 메소드 등등의 이름이 고유의 기능을 명확히 표현하는지 점검하여, 코드의 가독성을 높이고 유지보수가 잘되도록한다.
+
+* 단위를 작게 유지하자라
+  * TDD에서 단위라 함은 보통 클래스 혹은 모듈이라 불리는 관련 함수끼리의 집합으로 정의된다.
+  * 단위를 작게했을 때의 이점
+    * 디버깅에 드는 노력 감소
+      * 테스트가 fail 났을 때, 작은 단위일수록 디버깅하기 쉽다
+    * 문서화되는 테스트 
+      * 작은 테스트 케이스는 보다 읽기 쉽고 이해하기 편하다
+
