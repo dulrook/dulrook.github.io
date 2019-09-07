@@ -1,5 +1,5 @@
 ---
-layout: posts
+layout: splash
 title:  "[모던자바인액션] 메서드 참조, 람다, 익명함수"
 date:   2019-09-08 00:07:00 +0900
 categories: 자바
