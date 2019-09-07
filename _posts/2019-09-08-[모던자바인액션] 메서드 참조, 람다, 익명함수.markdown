@@ -26,7 +26,7 @@ File[] hiddenFiles = new File(".").listFiles(new FileFilter() {
 > Creates a new File instance by converting the given pathname string into an abstract pathname.
 
 
- *Methods*  
+ > *Methods*  
 
 | Modifier and Type | Method and Description |
 | ------------ | ----------- |
