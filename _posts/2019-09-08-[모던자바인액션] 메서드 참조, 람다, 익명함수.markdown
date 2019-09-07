@@ -18,19 +18,22 @@ File[] hiddenFiles = new File(".").listFiles(new FileFilter() {
 });
 ```
 
+
 위의 코드를 이해하기 위해 *java.io.File* 과 *java.io.FileFilter*에 대한 문서를 참조해보면 아래와 같다.
 > *Constructors*  
 >
 > **File(String pathname)**  
 > Creates a new File instance by converting the given pathname string into an abstract pathname.
 
-> *Methods*  
-> Modifier and Type | Method and Description  
-> |--|--|
-> File[]|`listFiles`( ) <br> Returns an array of abstract pathnames denoting the files in the directory denoted by this abstract pathname.
-> File[]|`listFiles`(`FileFilter` filter) <br> Returns an array of abstract pathnames denoting the files and directories in the directory denoted by this abstract pathname that satisfy the specified filter.
-> File[]|`listFiles`(`FilenameFilter` filter) <br> Returns an array of abstract pathnames denoting the files and directories in the directory denoted by this abstract pathname that satisfy the specified filter.
-> boolean |`isHidden`( ) <br> Tests whether the file named by this abstract pathname is a hidden file.
+
+ *Methods*  
+
+| Modifier and Type | Method and Description |
+| ------------ | ----------- |
+| File[] | `listFiles`( ) <br> Returns an array of abstract pathnames denoting the files in the directory denoted by this abstract pathname. |
+| File[] | `listFiles`(`FileFilter` filter) <br> Returns an array of abstract pathnames denoting the files and directories in the directory denoted by this abstract pathname that satisfy the specified filter. |
+| File[] | `listFiles`(`FilenameFilter` filter) <br> Returns an array of abstract pathnames denoting the files and directories in the directory denoted by this abstract pathname that satisfy the specified filter. |
+| boolean | `isHidden`( ) <br> Tests whether the file named by this abstract pathname is a hidden file. |
 
 File 클래스에는 File의 배열형태로 리턴하는 `listFiles`( ) 메서드로 3가지의 다형성이 존재한다. 아무런 인자를 받지 않고 디렉토리에 존재하는 파일들을 배열로 담아 리턴하거나, `FileFilter` 또는 `FilenameFilter` 를 인자로 받아 조건에 따라 필터링된 파일들만을 배열로 담아 리턴한다. 이 중에서 `FileFilter`는 Java.io 패키지에서 아래와 같이 구현되어있다. 
 
