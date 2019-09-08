@@ -1,0 +1,161 @@
+---
+layout: splash
+title:  "예외의 종류와 처리 방법"
+date:   2019-09-08 11:07:00 +0900
+categories: 디자인패턴
+---
+
+### [잘못된 예외 처리]
+_잘못된 예외 1_
+```java
+try {
+    ...
+}
+catch(SQLException e) {
+}
+// 예외를 잡고는 아무것도 하지 않는다.
+```
+
+_잘못된 예외2_
+```java
+try {
+    ...
+}
+catch (SQLException e) {
+    System.out.println(e);
+}
+// 콘솔 로그를 누군가 모니터링하지않는 이상 발견하기 어렵다.
+```
+
+_잘못된 예외3_
+```java
+try {
+    ...
+}
+catch (SQLException e) {
+    e.printStackTrace();
+}
+// 예제 2번과 마찬가지로 알아차리기 힘들다.
+```
+
+* 예외 처리의 핵심은 적절하게 복구되든지 아니면 작업을 중단시키고 운영자 또는 개발자에게 분명하게 통보되어야 한다는 것이다. *
+
+_무의미하고 무책임한 throws_
+```java
+public void method1() throws Exception { //그냥 받고 던져버려
+    method2();
+    ...
+}
+public void method2() throws Exception { //method1로 예외 던짐
+    method3();
+    ...
+}
+public void method3() throws Exception { //자신을 호출한 method2로 예외 던짐
+    ...
+}
+```
+
+### [예외의 종류와 특징]
+
+1) Error
+* java.lang.Error 클래스의 서브클래스
+* 주로 자바 VM에서 발생시키는 것이기 때문에 애플리케이션 코드에서 잡기 힘들다
+   * OutOfMemoryError, ThreadDeath
+
+2) Exception과 체크 예외(checked excetpion)
+* 개발자들이 만든 애플리케이션 코드의 작업 중에 예외상황이 발생했을 경우에 사용됨
+* Exception 클래스의 서브클래스이면서 RuntimeException을 상속하지 않은 것들이 체크 예외
+* 체크 예외가 발생할 수 있는 메소드를 사용할 경우 반드시 예외를 처리하는 코드를 함께 작성하거나 throws를 정의해서 메소드 밖으로 던져야함
+
+3) RuntimeException과 언체크/런타임 예외(unchecked exception)
+* java.lang.RuntimeException 클래스를 상속한 예외들은 명시적인 예외처리를 강제하지 않기때문에 언체크예외 혹은 런타임 예외라고 불림
+* 런타임예외는 catch 문으로 처리하거나 throws를 반드시 선언하지 않아도 됨 NullPointerException, IllegalArgumentException
+
+### [예외 처리 방법]
+
+1) 예외 복구
+* 예외 상황을 파악하고 문제를 해결하여 정상 상태로 복구하는 방법
+```java
+//재시도를 통해 예외를 복구하는 코드
+int maxRetry = MAX_RETRY;
+while(maxRetry --> 0) {
+    try {
+        ...
+        return;
+    }
+    catch (SomeException e) {
+        // 로그 출력. 정해진 시간만큼 대기
+    }
+    finally {
+        // 리소스 반납. 정리 작업
+    }
+}
+throw new RetryFailedException(); //최대 재시도 횟수를 넘기면 직접 예외 발생
+```
+2) 예외 처리 회피
+* 에외처리를 자신이 담당하지 않고 자신을 호출한 함수로 던져버리는 방법
+* thorws 문으로 선언하여 예외가 발생하면 알아서 던지게 함
+```java
+// 예외처리 회피 1
+public void add() throws SQLException {
+    //JDBC API
+}
+ 
+// 예외처리 회피 2
+public void add() throws SQLException {
+    try {
+        // JDBC API
+    }
+    catch(SQLException e) {
+        // 로그 출력
+        throw e;
+    }
+}
+```
+* JdbcTemplate이 사용하는 콜백 오브젝트는 작업 중 발생하는 SQLException을 자신이 처리하지 않고 템플릿으로 던져버린다
+* 따라서 콜백 오브젝트의 메소드는 모두 throws SQLException이 붙어 있다
+3) 예외 전환
+* 예외 회피와 비슷하게 예외를 복구해서 정상적인 상태로 만들 수 없기 때문에 예외를 메소드 밖으로 던지지만 발생한 예외를 적절한 예외로 전환해서 던지는 점에서 차이가 있다
+* 예외 전환의 일반적인 목적
+    1. 의미를 더욱 분명하게 하기 위해서 사용된다. 예를 들어 사용자 등록 시 같은 아이디가 중복된다면 JDBC API는 SQLException을 발생시키지만, 이는 에러가 발생한 원인에 대한 충분한 설명이 되지 않는다. 따라서 DAO에서 SQLException의 정보를 해석하여 DuplicateUserIdException 같은 예외로 전환하여 던지는 것이 좋다.
+    ```java
+    // 예외 전환 기능을 가진 DAO 메소드
+    public void add(User user) throws DuplicateUserIdException, SQLException {
+        try {
+            // JDBC를 이용해 user 정보를 DB에 추가
+        }
+        catch (SQLException e) {
+            // ErrorCode가 MySQL의 "Duplicate Entry(1062)" 이면 예외 전환
+            if (e.getErrorCode() == MysqlErrorNumbers.ER_DUP_ENTRY)
+                throws DuplicateUserIdException();
+            else
+                throw e; // 그 외의 경우는 SQLException
+        }
+    }
+    ```
+    보통은 전환하는 예외에 원래 발생한 예외를 담아서 중첩 예외로 만드는 것이 좋다. 중첩 예외는 getCause() 메소드를 이용해서 처음 발생한 예외가 무엇인지 확인할 수 있다.
+    ```java
+    //중첩 예외 1
+    catch(SQLException e) {
+        ...
+        throws DuplicateUserIdException(e);
+    }
+    //중첩 예외 2
+    catch(SQLException e) {
+        ...
+        throws DuplicateUserIdException().initCause(e);
+    }
+    ```
+
+    2.  예외처리를 강제하는 체크 예외를 언체크 예외인 런타임 예외로 바꾸는 경우에 사용한다. 대표적으로 EJBException을 들 수 있다. EJB 컴포넌트 코드에서 발생한 대부분의 체크 예외는 비즈니스 로직으로 볼 때 의미 있는 예외이거나 복구 가능한 예외가 아니다. 이런 경우 런타임 예외인 EJBException으로 포장해서 던지는 편이 낫다.
+    ```java
+    try {
+        OrderHome orderHome = EJBHome.Factory.getInstance().getOrderHome();
+        Order order = orderHome.findByPrimaryKey(Integer id);
+    } catch (NamingException ne) {
+        throw new EJBException(ne);
+    } catch (SQLException se) {
+        throw new EJBException(se);
+    } catch (RemoteException re) {
+        throw new EJBException(re);
+    }
