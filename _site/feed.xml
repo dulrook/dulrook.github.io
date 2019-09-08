@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.6.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2019-09-08T02:24:42+09:00</updated><id>http://localhost:4000/</id><title type="html">덜룩 Sequel</title><subtitle>Java, Spring framework, Web develop, etc.</subtitle><author><name>Dulrook Lee</name><email>dulrook@gmail.com</email></author><entry><title type="html">[모던자바인액션] 메서드 참조, 람다, 익명함수</title><link href="http://localhost:4000/%EC%9E%90%EB%B0%94/%EB%AA%A8%EB%8D%98%EC%9E%90%EB%B0%94%EC%9D%B8%EC%95%A1%EC%85%98-%EB%A9%94%EC%84%9C%EB%93%9C-%EC%B0%B8%EC%A1%B0,-%EB%9E%8C%EB%8B%A4,-%EC%9D%B5%EB%AA%85%ED%95%A8%EC%88%98/" rel="alternate" type="text/html" title="[모던자바인액션] 메서드 참조, 람다, 익명함수" /><published>2019-09-08T00:07:00+09:00</published><updated>2019-09-08T00:07:00+09:00</updated><id>http://localhost:4000/%EC%9E%90%EB%B0%94/%5B%EB%AA%A8%EB%8D%98%EC%9E%90%EB%B0%94%EC%9D%B8%EC%95%A1%EC%85%98%5D%20%EB%A9%94%EC%84%9C%EB%93%9C%20%EC%B0%B8%EC%A1%B0,%20%EB%9E%8C%EB%8B%A4,%20%EC%9D%B5%EB%AA%85%ED%95%A8%EC%88%98</id><content type="html" xml:base="http://localhost:4000/%EC%9E%90%EB%B0%94/%EB%AA%A8%EB%8D%98%EC%9E%90%EB%B0%94%EC%9D%B8%EC%95%A1%EC%85%98-%EB%A9%94%EC%84%9C%EB%93%9C-%EC%B0%B8%EC%A1%B0,-%EB%9E%8C%EB%8B%A4,-%EC%9D%B5%EB%AA%85%ED%95%A8%EC%88%98/">&lt;h2 id=&quot;functions-in-java&quot;&gt;Functions in Java&lt;/h2&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.6.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2019-09-08T03:13:29+09:00</updated><id>http://localhost:4000/</id><title type="html">덜룩 Sequel</title><subtitle>Java, Spring framework, Web develop, etc.</subtitle><author><name>Dulrook Lee</name><email>dulrook@gmail.com</email></author><entry><title type="html">[모던자바인액션] 메서드 참조, 람다, 익명함수</title><link href="http://localhost:4000/%EC%9E%90%EB%B0%94/%EB%AA%A8%EB%8D%98%EC%9E%90%EB%B0%94%EC%9D%B8%EC%95%A1%EC%85%98-%EB%A9%94%EC%84%9C%EB%93%9C-%EC%B0%B8%EC%A1%B0,-%EB%9E%8C%EB%8B%A4,-%EC%9D%B5%EB%AA%85%ED%95%A8%EC%88%98/" rel="alternate" type="text/html" title="[모던자바인액션] 메서드 참조, 람다, 익명함수" /><published>2019-09-08T00:07:00+09:00</published><updated>2019-09-08T00:07:00+09:00</updated><id>http://localhost:4000/%EC%9E%90%EB%B0%94/%5B%EB%AA%A8%EB%8D%98%EC%9E%90%EB%B0%94%EC%9D%B8%EC%95%A1%EC%85%98%5D%20%EB%A9%94%EC%84%9C%EB%93%9C%20%EC%B0%B8%EC%A1%B0,%20%EB%9E%8C%EB%8B%A4,%20%EC%9D%B5%EB%AA%85%ED%95%A8%EC%88%98</id><content type="html" xml:base="http://localhost:4000/%EC%9E%90%EB%B0%94/%EB%AA%A8%EB%8D%98%EC%9E%90%EB%B0%94%EC%9D%B8%EC%95%A1%EC%85%98-%EB%A9%94%EC%84%9C%EB%93%9C-%EC%B0%B8%EC%A1%B0,-%EB%9E%8C%EB%8B%A4,-%EC%9D%B5%EB%AA%85%ED%95%A8%EC%88%98/">&lt;h2 id=&quot;functions-in-java&quot;&gt;Functions in Java&lt;/h2&gt;
 &lt;h3 id=&quot;메서드-참조method-reference&quot;&gt;메서드 참조(Method reference)&lt;/h3&gt;
 &lt;p&gt;디렉토리에서 숨겨진 파일들을 필터링 하는 프로그램을 만든다고 했을 때, 기존 방식(자바8 이전)으로는 다음과 같이 구현할 수 있다.&lt;/p&gt;
 
@@ -19,13 +19,34 @@ Creates a new File instance by converting the given pathname string into an abst
 &lt;/blockquote&gt;
 
 &lt;blockquote&gt;
-  &lt;p&gt;&lt;em&gt;Methods&lt;/em&gt;&lt;br /&gt;
-Modifier and Type | Method and Description&lt;br /&gt;
-|–|–|
-File[]|&lt;code class=&quot;highlighter-rouge&quot;&gt;listFiles&lt;/code&gt;( ) &lt;br /&gt; Returns an array of abstract pathnames denoting the files in the directory denoted by this abstract pathname.
-File[]|&lt;code class=&quot;highlighter-rouge&quot;&gt;listFiles&lt;/code&gt;(&lt;code class=&quot;highlighter-rouge&quot;&gt;FileFilter&lt;/code&gt; filter) &lt;br /&gt; Returns an array of abstract pathnames denoting the files and directories in the directory denoted by this abstract pathname that satisfy the specified filter.
-File[]|&lt;code class=&quot;highlighter-rouge&quot;&gt;listFiles&lt;/code&gt;(&lt;code class=&quot;highlighter-rouge&quot;&gt;FilenameFilter&lt;/code&gt; filter) &lt;br /&gt; Returns an array of abstract pathnames denoting the files and directories in the directory denoted by this abstract pathname that satisfy the specified filter.
-boolean |&lt;code class=&quot;highlighter-rouge&quot;&gt;isHidden&lt;/code&gt;( ) &lt;br /&gt; Tests whether the file named by this abstract pathname is a hidden file.&lt;/p&gt;
+  &lt;p&gt;&lt;em&gt;Methods&lt;/em&gt;&lt;/p&gt;
+
+  &lt;table&gt;
+    &lt;thead&gt;
+      &lt;tr&gt;
+        &lt;th&gt;Modifier and Type&lt;/th&gt;
+        &lt;th&gt;Method and Description&lt;/th&gt;
+      &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+      &lt;tr&gt;
+        &lt;td&gt;File[]&lt;/td&gt;
+        &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;listFiles&lt;/code&gt;( ) &lt;br /&gt; Returns an array of abstract pathnames denoting the files in the directory denoted by this abstract pathname.&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+        &lt;td&gt;File[]&lt;/td&gt;
+        &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;listFiles&lt;/code&gt;(&lt;code class=&quot;highlighter-rouge&quot;&gt;FileFilter&lt;/code&gt; filter) &lt;br /&gt; Returns an array of abstract pathnames denoting the files and directories in the directory denoted by this abstract pathname that satisfy the specified filter.&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+        &lt;td&gt;File[]&lt;/td&gt;
+        &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;listFiles&lt;/code&gt;(&lt;code class=&quot;highlighter-rouge&quot;&gt;FilenameFilter&lt;/code&gt; filter) &lt;br /&gt; Returns an array of abstract pathnames denoting the files and directories in the directory denoted by this abstract pathname that satisfy the specified filter.&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+        &lt;td&gt;boolean&lt;/td&gt;
+        &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;isHidden&lt;/code&gt;( ) &lt;br /&gt; Tests whether the file named by this abstract pathname is a hidden file.&lt;/td&gt;
+      &lt;/tr&gt;
+    &lt;/tbody&gt;
+  &lt;/table&gt;
 &lt;/blockquote&gt;
 
 &lt;p&gt;File 클래스에는 File의 배열형태로 리턴하는 &lt;code class=&quot;highlighter-rouge&quot;&gt;listFiles&lt;/code&gt;( ) 메서드로 3가지의 다형성이 존재한다. 아무런 인자를 받지 않고 디렉토리에 존재하는 파일들을 배열로 담아 리턴하거나, &lt;code class=&quot;highlighter-rouge&quot;&gt;FileFilter&lt;/code&gt; 또는 &lt;code class=&quot;highlighter-rouge&quot;&gt;FilenameFilter&lt;/code&gt; 를 인자로 받아 조건에 따라 필터링된 파일들만을 배열로 담아 리턴한다. 이 중에서 &lt;code class=&quot;highlighter-rouge&quot;&gt;FileFilter&lt;/code&gt;는 Java.io 패키지에서 아래와 같이 구현되어있다.&lt;/p&gt;
