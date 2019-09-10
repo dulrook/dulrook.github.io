@@ -1,0 +1,209 @@
+---
+layout: splash
+title:  "서비스 추상화와 JDBC 트랜잭션"
+date:   2019-09-10 23:59:00 +0900
+categories: 스프링
+---
+
+# 서비스 추상화
+### [JDBC 트랜잭션]
+1. **트랜잭션이란 ?**
+    1. 하나의 논리적인 작업 단위를 이루는 여러 연산들의 집합
+    2. 데이터베이스 시스템은 트랜잭션에 대해 원자성(Atomicity), 일관성(Consistency), 고립성(Isolation), 영구성(Durability)을 보장
+        1. 원자성: 트랜잭션의 모든 연산들이 정상적으로 수행 완료되거나 아니면 어떠한 연산도 수행되지 않은 원래 상태가 되도록 해야 함.
+        2. 일관성: 동시에 수행되는 트랜잭션이 없는 고립된 상태에서의 트랜잭션 수행이 데이터베이스의 일관성을 보존해야 함.
+        3. 고립성: 여러 트랜잭션들이 동시에 수행되더라도, 모든 트랜잭션의 쌍에 대해 각각의 실행 순서에 상관없이 같은 결과가 되도록 보장해야함. 즉, 각 트랜잭션은 시스템에서 다른 트랜잭션이 동시에 수행되고 있는지를 알지 못함.
+        4. 지속성: 트랜잭션이 성공적으로 수행 완료되고 나면, 트랜잭션에 의해 데이터베이스에 변경된 내용은 시스템에 오류가 발생하더라도 지속되어야 함.
+    3. 간단한 트랜잭션 예: 계좌A 에서 계좌B로 $50을 이체
+        ```
+        T: read(A);
+            A := A - 50;
+            write(A);
+            read(B);
+            B := B + 50;
+            write(B).
+        ```
+        * 일관성: 이 예에서 일관성 요구 조건은 계좌 A와 B의 합한 잔고가 트랜잭션 수행이 끝난 후에도 변하지 않아야 한다는 것
+        * 원자성: 만약 트랜잭션 실행 전 계좌 A와 B에 각각 $1000, $2000이 있다고 하고, 트랜잭션 실행 중 write(A)와 write(B) 사이에서 오류가 발생했다고 하자. 이 경우 계좌 A와 B의 값은 각각 $950, $2000이 되어 오류로 인해 $50을 잃게 된다. 실패가 발생한 시스템에서 더 이상 실세계의 실제 상태를 반영하지 못하게 된것을 비일관성 상태라고 하며, 데이터베이스 시스템 내의 이러한 비일관성 상태가 발생하지 않도록 해야 한다.
+        * 지속성: 트랜잭션의 실행이 성공적으로 종료되면 그 트랜잭션을 발생시킨 사용자에게 정상적으로 끝났음을 알려준다. 지속성은 일단 트랜잭션이 성공적으로 끝나면 종료된 이후에는 시스템 오류가 발생하더라도 그 트랜잭션이 처리한 모든 갱신 결과가 데이터베이스에 지속된다는 것을 의미한다.
+        * 고립성: 각 트랜잭션에 대해 일관성과 원자성이 보장된다고 해도 여러 트랜잭션들이 동시에 수행될 경우 트랜잭션의 연산들이 예기치 않은 순서로 배치되고 이에 따라 비일관성 상태가 발생할 수 있다. 동시에 실행되는 트랜잭션으로 인한 문제를 피하기 위한 가장 쉬운 방법은 순차적으로 트랜잭션을 실행하는 것인데, 이 경우 성능상 이점이 없기 때문에 성능 향상을 위한 동시성 제어 방법들이 있다.
+
+2. **JDBC 트랜잭션 경계 설정**
+    ```java
+    Connection c = dataSource.getConnection(); //DB 커넥션 시작
+ 
+    c.setAutoCommit(false); //트랜잭션 시작
+    try {
+        PreparedStatement st1 = c.prepareStatement("update users ...");
+        st1.executeUpdate();
+ 
+        PreparedStatement st2 = c.prepareStatement("delete users ...");
+        st2.executeUpdate();
+ 
+        c.commit(); //트랜잭션 커밋
+    }
+    catch(Exception e) {
+        c.rollback(); //트랜잭션 롤백
+    } //트랜잭션 끝
+ 
+    c.close(); //DB커넥션 끝
+    ```
+
+    * JDBC의 <U>트랜잭션은 하나의 Connection을 가져와 사용하다가 닫는 사이에 일어난다.</U>
+    * setAutoCommit(false)로 트랜잭션의 시작을 선언하고 commit() 또는 rollback() 으로 트랜잭션을 종료하는 작업을 트랜잭션의 경계설정이라고 한다.
+
+3. **트랜잭션 동기화**
+    * 비즈니스 로직에서 JdbcTemplate 처럼 매번 새로운 Connection 오브젝트를 만들 경우 트랜잭션 경계설정을 하기가 까다로워 진다
+      * 트랜잭션을 담고 있는 Connection을 공유하기 위해 매번 DAO 메소드를 사용할 때 마다 파라미터로 넘겨준다?
+        * 리소스의 깔끔한 처리를 가능하게 했던 JdbcTemplate을 더 이상 활용할 수 없다
+        * DAO의 메소드와 비즈니스 로직을 담고 있는 UserService의 메소드에 Connection 파라미터가 추가하고, 모든 메소드에 걸쳐 
+Connection 오브젝트가 계속 전달돼야 하는 지저분한 상황 발생
+        * Connection 파라미터가 UserDao 인터페이스 메소드에 추가되면 UserDao는 더 이상 데이터 액세스 기술에 독립적일 수 가 없다. JPA나 하이버네이트는 Connection 대신 EntityManager나 Session 오브젝트를 사용.
+    * 스프링에서는 위와 같은 딜레미 해결을 위해 트랜잭션 동기화(Transaction synchronization) 방식을 제공
+      * 트랜잭션을 시작하기 위해 만든 Connection 오브젝트를 특별한 저장소에 보관해두고, 이후에 호출되는 DAO 메소드에서는 저장된 
+Connection 오브젝트를 가져다 사용
+      * 트랜잭션이 모두 종료되면, 동기화 종료
+      ```java
+      public void upgareLevels() throws Exception {
+          TransactionSynchronizationManager.initSynchronization(); //동기화 작업 초기화
+          Connection c = DataSourceUtils.getConnection(dataSource); //DB 커넥션 생성하고 트랜잭션 시작
+          c.setAutoCommit(false);
+ 
+          try {
+              ....
+              c.commit();
+          }
+          catch (Exception e) {
+              c.rollback();
+              throw e;
+          } //트랜잭션 종료
+          finally {
+              // DB 커넥션 닫기
+              DataSourceUtils.releaseConnection(c, dataSource);
+              // 동기화 작업 종료 및 정리
+              TransactionSynchronizationManager.unbindResource(this.dataSource);
+              TransactionSynchronizationManager.clearSynchronization();
+          }
+      }
+      ```
+4. 트랜잭션 서비스 추상화
+    * 하나의 트랜잭션 안에 여러 개의 데이터 액세스 기술이 사용된다면?
+      * 별도의 트랜잭션 관리자를 통해 트랜잭션을 관리하는 글로벌 트랜잭션 방식을 사용해야 한다
+        * 트랜잭션 매니저를 통해 여러 개의 DB가 참여가능한 작업을 하나의 트랜잭션으로 만듦
+      * 자바는 JDBC외에 글로벌 트랜잭션을 지원하는 트랜잭션 매니저를 지원하기 위한 API인 JTA(Java Transaction API)를 제공                                                                           
+![1](https://user-images.githubusercontent.com/47546079/57603702-52bdda80-759d-11e9-99e1-502c6f817595.png)
+        * 그림 5-4는 JTA를 이용해 여러 개의 DB 또는 메시징 서버에 대한 트랜잭션 관리 하는 방법을 나타냄
+          * 애플리케이션에서는 DB는 JDBC, 메세징 서버는 JMS와 같은 API를 사용해 필요한 작업을 수행
+          * 트랜잭션은 JDBC나 JMS의 API를 사용해서 직접 제어하는 것이 아니라 JTA를 통해 트랜잭션 매니저가 관리하도록 위임
+          * 트랜잭션 매니저는 DB와 메시징 서버를 리소스 매니저와 XA 프로토콜을 통해 제어함으로써 트랜잭션을 종합적으로 제어한다  
+          ```java
+          //JNDI를 이용해 서버의 UserTransaction 오브젝트를 가져온다
+          InitialContext ctx = new InitialContext();
+          UserTransaction tx = (UserTransaction)ctx.lookup(USER_TX_JNDI_NAME);
+ 
+          tx.begin();
+          Connection c = dataSource.getConnection(); //JNDI로 가져온 dataSource를 사용해야한다.
+          try {
+              // 데이터 액세스 코드
+              tx.commit();
+          }
+          catch (Exception e) {
+              tx.rollback();
+              throw e;
+          }
+          finally {
+              c.close();
+          }
+    * 만약 하이버네이트를 이용한다면, 트랜잭션 관리 코드가 JDBC나 JTA의 코드와는 또 다를 것이다. 하이버네이트는 Connection을 직접 사용하지 않고 Session 을 사용
+        1. JDBC에 종속적인 Connection을 이용한 트랜잭션코드가 UserSerivce에 등장하면서부터 UserService는  UserDaoJdbc에 간접적으로 의존하는 코드가 되버림
+        2. UserService가 특정 트랜잭션 방법에 의존적이지 않고 독립적이게 만드려면?
+          * 트랜잭션의 경계설정을 담당하는 코드는 일정한 패턴을 갖는 유사한 구조
+          * 여러 기술의 사용방법에 공통점이 있다면? 추상화
+          * 추상화는 하위 시스템의 공통점을 뽑아내서 분리시키는 것
+          * 그러면 하위 시스템이 뭔지 몰라도  혹은 하위 시스템이 변경되도 일관된 방법으로 접근 가능
+    * 스프링에서는 트랜잭션 경계설정을 위한 추상인터페이스로 PlatformTransactionManager를 제공                                                                                                          
+![2](https://user-images.githubusercontent.com/47546079/57603703-53567100-759d-11e9-809b-6fdae65bc88f.png)
+
+        ```java
+        public void upgradeLevels() {
+            PlatformTransactionManager transactionManager = new DataSourceTransactionManager(dataSource); //JDBC 트랜잭션 추상 오브젝트 생성
+     
+            TransactionStatus status = transactionManager.getTransaction(new DefaultTransactionDefinition());
+ 
+            try {
+                List<User> users = userDao.getAll();
+                    for (User user : users) {
+                        if (canUpgradeLevel(user)) {
+                            upgradeLevel(user);
+                        }
+                    }
+                    this.transactionManager.commit(status); //트랜잭션 커밋
+            }
+            catch (RuntimeException e) {
+                transactionManager.rollback(status); //트랜잭션 롤백
+                throw e;
+            }
+        }
+        ```
+
+        1. 스프링이 제공하는 트랜잭션 추상화 방법을 적용하면 위 코드와 같다
+        2. JDBC의 로컬 트랜잭셩을 이용한다면 PlatformTransactionManager를 구현한 DataSourceTransactionManager를 사용하면 됨
+        3. 사용할 DB의 DataSource를 생성자 파라미터로 넣으면서 DataSourceTransactionManager 오브젝트 생성
+
+  * 근데 위 코드를 JDBC가 아니라 JTA로 바꾸려면?
+    * PlatformTransactionManager transactionManager = new JTATransactionManager(); 로 수정
+    * 그런데 이렇게 어떤 트랜잭션 매니저 구현 클래스를 사용할 지 UserService 코드에서 알고 있는 것은 DI 원칙에 위배
+    * 자신이 사용할 구체적인 클래스를 스스로 결정하는 것이 아니라 컨테이너를 통해 외부에서 제공받게하는 스프링 DI의 방식으로 바꿔야함 
+      ```java
+      public class UserService {
+          ...
+ 
+          private PlatformTransactionManager transactionManager;
+ 
+          public void setTransactionManager(PlatformTransactionManager transactionManager) {
+              this.transactionManager = transactionManager;
+          }
+ 
+          public void upgradeLevels(){
+              TransactionStatus status = this.transactionManager.getTransaction(new DefaultTransactionDefinition());
+              try {
+                  List<User> users = userDao.getAll();
+                  for (User user : users) {
+                      if (canUpgradeLevel(user)) {
+                          upgradeLevel(user);
+                      }
+                  }
+                  this.transactionManager.commit(status);
+              }
+              catch (RuntimeException e){
+                  this.transactionManager.rollback(status);
+                  throw e;
+              }
+          }
+          ...
+      }
+ 
+ 
+      // 빈 설정 파일
+      <bean id="userService" class="springbook.user.service.UserService">
+              <property name="userDao" ref="userDao" />
+              <property name="transactionManager" ref="transactionManager" />
+      </bean>
+ 
+      <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+              <property name="dataSource" ref="dataSource" />
+      </bean>
+      ```
+
+***
+
+### [빈이 잘 주입되었는지 테스트]
+```java
+@Autowired
+UserSerivce userSerivce
+ 
+@Test
+public void bean() {
+    assertTaht(this.userService, is(notNullValue()));
+}
+```
