@@ -5,8 +5,8 @@ date:   2019-09-24 01:12:00 +0900
 categories: 자바
 ---
 
-## 람다 표현식
-### 람다에 대한 요약
+# 람다 표현식
+## 람다에 대한 요약
 *Lambda expression* 이란, 메서드로 전달할 수 있는 익명함수를 간결히 표현한 것이다. 
 - Anonymous: 메서드처럼 명시적인 이름이 없기 때문에 익명성이 있다. 
 - Funtion: 메서드처럼 특정한 클래스와 연관되지않지만 람다는 메서드처럼 파라미터 리스트, 바디, 리턴타입, 발생할 수 있는 예외 리스트들을 갖고 있다.
@@ -35,14 +35,14 @@ Comparator<Apple> byWeight = (Apple a1, Apple a2) -> a1.getWeight().compareTo(a2
 
 <br/>
 
-### 람다를 어디에 어떻게 사용할지
+## 람다를 어디에 어떻게 사용할지
 
-#### 함수형 인터페이스
+- 함수형 인터페이스
 함수형 인터페이스는 정확히 하나의 추상 메서드를 갖는 인터페이스이기 때문에 람다 표현식을 통해 함수형 인터페이스의 추상 메소드를 직접적으로 인라인으로 구현할 수 있다. 
 
-#### 함수 디스크립터
+- 함수 디스크립터
 함수형 인터페이스에 정의된 추상 메서드의 시그니처는 람다 표현식의 시그니처를 나타낸다. 그리고 이 추상 메서드를 *function descrptior* 라고 한다. 
-- () -> void 는 빈 파라미터를 인자로 받아 void를 리턴하는 함수를 나타낸다. 그리고 이 표기법은 정확히 `Runnable` 인터페이스를 나타낸다.  
+- `() -> void` 는 빈 파라미터를 인자로 받아 void를 리턴하는 함수를 나타낸다. 그리고 이 표기법은 정확히 `Runnable` 인터페이스를 나타낸다.  
 ```java
 public interface Runnable { void run(); }
 ```
@@ -51,8 +51,9 @@ public interface Runnable { void run(); }
 process(() -> System.out.println("This is awesome!));
 ```
 
-### 람다 실제로 사용해보기: the execute-around pattern
+## 람다 실제로 사용해보기: the execute-around pattern
 아래 그림과 같은 형식의 코드를 *execute-around* 패턴이라고 한다. 가령, 파일이나 데이터베이스를 처리할 때 자원을 열고, 어떤 작업을 하고나서, 자원을 닫는등의 과정이 이에 해당한다.
+
 <img src="https://github.com/dulrook/dulrook.github.io/blob/master/assets/images/execute-around%20pattern.PNG?raw=true">
 
 ```java
@@ -102,11 +103,12 @@ public String processFile() throws IOException {
     String twoLines = processFile((BufferedReader br) ->  br.readLine() + br.readLine());
     ```
 
-### 함수형 인터페이스 사용
+## 함수형 인터페이스 사용
 함수형 인터페이스가 유용한 이유는 추상 메서드의 시그니처가 람다 표현식의 시그니처를 나타낸다는 점이다. 추상 메서드의 시그니처를 *function descriptor*라고 한다. 다양한 람다 표현식을 사용하기 위해서는 공통의 함수 디스크립터를 표현할 수 있는 함수형 인터페이스들의 집합이 필요하다. 
 자바 API는 `Comparable`, `Runnable`, `Callable` 등의 다양한 함수 API를 포함하고 있다. 자바8 라이브러리 설계자들은 개발자들을 위해 `java.util.function` 패키지내에 여러가지 새로운 함수형 인터페이스를 제공하고 있다.
 
 - Predicate
+
     ```java
     // java.util.function.Predicate
     /**
@@ -149,6 +151,7 @@ public String processFile() throws IOException {
     List<String> nonEmpty = filter(listOfStrings, nonEmptyStringPredicate);
     ```
 - IntPredicate
+
     자바 타입에는 reference type (예를 들어, `Byte`, `Integer`, `Object`, `List`)과 primitive type (예를 들어, int, double, byte, char)이 있다. 그런데 제네릭 파라미터는 내부 구현상 referece 타입만 사용할 수 있다. 그래서 자바에서는, primitive type을 상응하는 reference type으로 변환하는 매커니즘이 있고, 이를 *boxing* 이라고 한다. 반대의 경우는 *unboxing* 이라고 한다. 물론 자바에는 *autoboxing* 이라는 편리한 매커니즘이 있다. 그러나 이 매커니즘은 퍼포먼스 비용을 수반하게 된다. 
     자바 8에서는 이와 같이 박싱과 언박싱으로 인한 메모리 낭비를 피하기 위해 특화된 버젼의 함수형 인터페이스를 제공한다. 
     ```java
@@ -200,7 +203,7 @@ public String processFile() throws IOException {
     > };
     > ```
 
-### 메서드 참조
+## 메서드 참조
 메서드 참조를 이용하면 기존의 메서드 정의를 재사용할 수 있고 람다 처럼 전달할 수 있다. 때로는 람다 표현식을 사용하는 것보다 메서드 참조를 사용하는 것이 가독성 측면에서 좋을 때가 있다. 
 ```java
 // Before:
@@ -209,11 +212,11 @@ inventory.sort((Apple a1, Apple a2) -> a1.getWeight().compareTo(a2.getWeight()))
 inventory.sort(comparing(Apple::getWeight));
 ```
 
-#### 간단히 얘기하자면
+### 간단히 얘기하자면
 메서드 참조는 람다가 오직 특정한 메서드만을 호출하는 줄임말로 볼 수 있다. 기본 아이디어는 람다가 "이 메서드를 직접적으로 호출해라"를 표현한다면, 어떻게 호출하는지 설명하는지를 참조하기 보다는 메서드 이름으로 참조하는 것이 가장 좋은 방법이다. 실제로, 메서드 참조는 기존의 메서드 구현으로부터 람다 표현식을 생성할 수 있도록한다. 명시적으로 메서드 이름을 참조함으로써 코드의 가독성을 높일 수 있는것이다.
 <img src="https://github.com/dulrook/dulrook.github.io/blob/master/assets/images/lamdas%20and%20method%20reference.PNG?raw=true">
 
-### 생성자 참조
+## 생성자 참조
 `ClassName::new` 처럼 이름과 키워드`new`를 사용하여 기존의 생성자를 참조할 수 있다. 예를 들어 인수가 없는 생성자, 즉 `Supplier`의 `() -> Apple` 같은 시그니처를 갖는 생성자가 있다고 가정한다면,
 ```java
 Supplier<Apple> c1 = Apple::new;
@@ -236,9 +239,9 @@ Function<Integer, Apple> c2 = (weight) -> new Apple(weight);
 Apple a2 = c2.apply(110);
 ```
     
-### 람다 표현식 합성을 위한 유용한 메서드들
+## 람다 표현식 합성을 위한 유용한 메서드들
 자바 8 API 내에 여러 함수형 인터페이스는 편리한 메서드들을 포함하고 있다. 예를 들어, `Comparator`, `Function`, `Predicate`등과 같이 많은 함수형 인터페이스는 람다 표현식을 합성할 수 있는 메서드를 제공한다. 즉, 여러개의 단순한 람다 표현식을 합쳐서 복잡한 표현식을 만들 수 있다.
-#### Composing Comparators
+### Composing Comparators
 ```java
 Comparator<Apple> c = comparator.comparing(Apple::getWeight);
 
@@ -250,7 +253,7 @@ inventory.sort(comparing(Apple::getWeight))
         .reversed()
         .thenComparing(Apple::getCountry));
 ```
-#### Composing Predicates
+### Composing Predicates
 `Predicate` 인터페이스에는 기존의 `Predicate`를 좀 더 복잡하게 재사용할 수 있도록하는 세가지 메서드를 포함한다: `negate`, `and`, `or`.
 ```java
 // Produces the negation of the exsting Predicate object redApple
@@ -260,7 +263,7 @@ Predicate<Apple> notRedApple = redApple.negate();
 Predicate<Apple> redAndHeavyApple = redApple.and(apple -> apple.getWeight() > 150);
 ```
 
-#### Composing Functions
+### Composing Functions
 `Function` 인터페이스에 의해 표현되는 람다 표현식 역시 합성할 수 있다. `Function` 인터페이스는 `andThen`과 `compose`라는 `Function`의 인스턴스를 리턴하는 디폴트 메서드를 포함한다.
 
 ```java
