@@ -13,7 +13,7 @@ categories: 자바
 - Passed around: 람다 표현식은 메서드의 인자로 전달되거나 변수로써 저장될 수 있다.
 - Concise: 익명 클래스처럼 불필요한 코드를 작성할 필요 없다.
 
-```Java
+```java
 // Before
 Comparator<Apple> byWeight = new Comparator<Apple>() {
     public int compare(Apple a1, Apple a2) {
@@ -42,11 +42,11 @@ Comparator<Apple> byWeight = (Apple a1, Apple a2) -> a1.getWeight().compareTo(a2
 ##### 함수 디스크립터
 함수형 인터페이스에 정의된 추상 메서드의 시그니처는 람다 표현식의 시그니처를 나타낸다. 그리고 이 추상 메서드를 *function descrptior* 라고 한다. 
 - () -> void 는 빈 파라미터를 인자로 받아 void를 리턴하는 함수를 나타낸다. 그리고 이 표기법은 정확히 `Runnable` 인터페이스를 나타낸다.  
-```Java
+```java
 public interface Runnable { void run(); }
 ```
 - 아래의 statement가 정상적인 람다 표현식인 이유는 자바 스펙에서 단일 void 메서드를 호출하는 경우 중괄호로 감쌀 필요 없다고 정의하고 있기 때문이다.
-```Java
+```java
 process(() -> System.out.println("This is awesome!));
 ```
 
@@ -66,19 +66,19 @@ public String processFile() throws IOException {
 - **단계 1: 동작 파라미터를 기억하라**
     현재 코드는 파일로부터 오로지 첫 행만을 읽는다는 제한점이 있다. 두 개의 라인이나 혹은 자주 사용되는 단어등을 리턴하고 싶을땐 어떻게 해야하는가? 이상적으로는 setup과 cleanup을 수행하는 코드를 재사용하고 `processFile()` 에게 파일에 다른 기능을 수행하는 메서드를 알려줄 것 이다. 즉, `processFile`의 동작을 파라미터화하는 것이다.
     동작을 전달하는데에는 정확히 람다가 사용된다. 예를 들어, `BufferedReader`의 두 개 행을 출력하려면:
-    ```Java
+    ```java
     String result = processFile((BufferedReader br) -> br.readLine() + br.readLine());
     ```
 - **단계 2: 동작 전달을 위해 함수형 인터페이스 사용**
     `BufferedReader -> String` 시그니처와 일치하는 람다를 만들어야하고, `IOException` 예외를 던질 수 있도록 해야한다. 다음의 인터페이스를 `BufferedReaderProcessor` 라고 정의하자:
-    ```Java
+    ```java
     @FunctionalInterface
     public interface BufferedReaderProcessor {
         String process(BufferedReader b) throws IOException;
     }
     ```
     이제 이 인터페이스를 새로운 `processFile` 메서드의 인자로 사용할 수 있다:
-    ```Java
+    ```java
     public String processFile(BufferedReaderProcessor p) throws IOException {
         ...
     }
@@ -86,7 +86,7 @@ public String processFile() throws IOException {
 
 - **단계 3: 동작 실행**
     `BufferedReader -> String` 형태를 만족하는 어떠한 람다던지 메서드의 인자로 사용될 수 있다. 이제 `processFile`의 바디 내부에서 람다로 표시되는 코드를 실행하는 방법만 있으면 된다.
-    ```Java
+    ```java
     public Stirng processFile(BufferedReaderProcessor p) throws IOException {
         try (BufferedReader br = new BufferedReader(new FileReader("data.txt"))) {
             return p.process(br);
@@ -96,7 +96,7 @@ public String processFile() throws IOException {
 
 - **단계 4: 람다 전달**
     이제 여러가지 람다를 이용해 `processFile` 메서드를 재사용하고 다양한 방식으로 파일을 처리할 수 있다.
-    ```Java
+    ```java
     String oneLine = processFile((BufferedReader br) -> br.readLine());
     String twoLines = processFile((BufferedReader br) ->  br.readLine() + br.readLine());
     ```
@@ -106,7 +106,7 @@ public String processFile() throws IOException {
 자바 API는 `Comparable`, `Runnable`, `Callable` 등의 다양한 함수 API를 포함하고 있다. 자바8 라이브러리 설계자들은 개발자들을 위해 `java.util.function` 패키지내에 여러가지 새로운 함수형 인터페이스를 제공하고 있다.
 
 - Predicate
-    ```Java
+    ```java
     // java.util.function.Predicate
     /**
     * Represents a predicate (boolean-valued function) of one argument.
@@ -150,7 +150,7 @@ public String processFile() throws IOException {
 - IntPredicate
     자바 타입에는 reference type (예를 들어, `Byte`, `Integer`, `Object`, `List`)과 primitive type (예를 들어, int, double, byte, char)이 있다. 그런데 제네릭 파라미터는 내부 구현상 referece 타입만 사용할 수 있다. 그래서 자바에서는, primitive type을 상응하는 reference type으로 변환하는 매커니즘이 있고, 이를 *boxing* 이라고 한다. 반대의 경우는 *unboxing* 이라고 한다. 물론 자바에는 *autoboxing* 이라는 편리한 매커니즘이 있다. 그러나 이 매커니즘은 퍼포먼스 비용을 수반하게 된다. 
     자바 8에서는 이와 같이 박싱과 언박싱으로 인한 메모리 낭비를 피하기 위해 특화된 버젼의 함수형 인터페이스를 제공한다. 
-    ```Java
+    ```java
     // java.util.function.IntPredicate
 
     /**
@@ -185,14 +185,14 @@ public String processFile() throws IOException {
     > > 언체크 예외(Unchecked Exception)는 `RuntimeExceptino`을 상속하는 예외로, 명시적으로 예외처리를 강제하지 않는다. 대표적으로 `NullPointerException` 이 해당된다.
     >
     > 예를 들어, 3.3 절에서 소개한 함수형 인터페이스 `BufferedReaderProcessor`는 명시적으로 `IOException`을 선언한다:
-    > ```Java
+    > ```java
     > @FunctionalInterface
     > public interface BufferedReaderProcessor {
     >   String process(BufferedReader b) throws IOException;
     > }
     > ```
     > 그러나 보통은 `Function<T, R>`과 같은 함수형 인터페이스를 기대하는 API를 사용하기 때문에 직접 함수형 인터페이스를 정의하기는 힘들다. 이런 경우에는 체크 예외를 명시적으로 잡아줘야한다:
-    > ```Java
+    > ```java
     > Function<BufferedReader, String> f =
     >   (BufferedReader b) -> {
     >       try { return b.readLine(); } catch(IOExceptiopn e) { throw new RuntimeException(e); } 
@@ -201,7 +201,7 @@ public String processFile() throws IOException {
 
 #### 메서드 참조
 메서드 참조를 이용하면 기존의 메서드 정의를 재사용할 수 있고 람다 처럼 전달할 수 있다. 때로는 람다 표현식을 사용하는 것보다 메서드 참조를 사용하는 것이 가독성 측면에서 좋을 때가 있다. 
-```Java
+```java
 // Before:
 inventory.sort((Apple a1, Apple a2) -> a1.getWeight().compareTo(a2.getWeight()));
 // After (using a method reference and java.util.Compartor.comparing):
@@ -214,7 +214,7 @@ inventory.sort(comparing(Apple::getWeight));
 
 #### 생성자 참조
 `ClassName::new` 처럼 이름과 키워드`new`를 사용하여 기존의 생성자를 참조할 수 있다. 예를 들어 인수가 없는 생성자, 즉 `Supplier`의 `() -> Apple` 같은 시그니처를 갖는 생성자가 있다고 가정한다면,
-```Java
+```java
 Supplier<Apple> c1 = Apple::new;
 Apple a1 = c1.get();
 
@@ -225,7 +225,7 @@ Apple a1 = c1.get();
 ```
 
 Apple(Integer weight)라는 시그니처를 갖는 생성자는 `Function` 인터페이스의 시그니처와 같다.
-```Java
+```java
 Function<Integer, Apple> c2 = Apple::new;
 Apple a2 = c2.apply(110);
 
@@ -238,7 +238,7 @@ Apple a2 = c2.apply(110);
 #### 람다 표현식 합성을 위한 유용한 메서드들
 자바 8 API 내에 여러 함수형 인터페이스는 편리한 메서드들을 포함하고 있다. 예를 들어, `Comparator`, `Function`, `Predicate`등과 같이 많은 함수형 인터페이스는 람다 표현식을 합성할 수 있는 메서드를 제공한다. 즉, 여러개의 단순한 람다 표현식을 합쳐서 복잡한 표현식을 만들 수 있다.
 ##### Composing Comparators
-```Java
+```java
 Comparator<Apple> c = comparator.comparing(Apple::getWeight);
 
 // Reversed Order
@@ -251,7 +251,7 @@ inventory.sort(comparing(Apple::getWeight))
 ```
 ##### Composing Predicates
 `Predicate` 인터페이스에는 기존의 `Predicate`를 좀 더 복잡하게 재사용할 수 있도록하는 세가지 메서드를 포함한다: `negate`, `and`, `or`.
-```Java
+```java
 // Produces the negation of the exsting Predicate object redApple
 Predicate<Apple> notRedApple = redApple.negate();
 
@@ -262,7 +262,7 @@ Predicate<Apple> redAndHeavyApple = redApple.and(apple -> apple.getWeight() > 15
 ##### Composing Functions
 `Function` 인터페이스에 의해 표현되는 람다 표현식 역시 합성할 수 있다. `Function` 인터페이스는 `andThen`과 `compose`라는 `Function`의 인스턴스를 리턴하는 디폴트 메서드를 포함한다.
 
-```Java
+```java
 Function<Integer, Integer> f = x -> x + 1;
 Function<Integer, Integer> g = x -> x * 2;
 Function<Integer, Integer> h = f.andThen(g); // g(f(x))
