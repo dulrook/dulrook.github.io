@@ -1,7 +1,7 @@
 ---
 layout: splash
 title:  "[모던자바인액션] 스트림 활용"
-date:   2019-10-07 23:27:00 +0900
+date:   2019-10-06 23:27:00 +0900
 categories: 자바
 ---
 
@@ -249,3 +249,141 @@ categories: 자바
     ```
 
 ## 매핑
+특정한 객체들로부터 정보를 선택하는 것은 일반적인 데이터 처리에서 가장 흔한 일이다. 예를 들어, SQL에서는 테이블로부터 특정 칼럼을 선택할 수 있다. 스트림 API는 유사한 기능을 `map`과 `flatMap` 메서드를 통해 제공한다.
+
+1. 스트림의 각 요소에 함수 적용하기
+스트림은 함수를 인자로 받는 `map` 메서드를 지원한다. 함수는 각 요소에 적용되어, 요소들은 새로운 요소로 매핑된다. 예를 들어, 다음 코드는 메서드 참조로 `Dish::getName`을 `map` 메서드에 전달하여 스트림 내에 요리들의 이름을 추출해낸다. 
+
+    ```java
+    List<String> dishNames = menu.stream()
+                                .map(Dish::getName)
+                                .collect(toList());
+    ```
+
+    ```java
+    /**
+     * Returns a stream consisting of the results of applying the given
+     * function to the elements of this stream.
+     *
+     * <p>This is an <a href="package-summary.html#StreamOps">intermediate
+     * operation</a>.
+     *
+     * @param <R> The element type of the new stream
+     * @param mapper a <a href="package-summary.html#NonInterference">non-interfering</a>,
+     *               <a href="package-summary.html#Statelessness">stateless</a>
+     *               function to apply to each element
+     * @return the new stream
+     */
+    <R> Stream<R> map(Function<? super T, ? extends R> mapper);
+    ```
+
+2. 스트림 납작하게 만들기
+["Hello", "World"] 를 ["H","e","l","o","W","r","d"] 와 같은 고유한 문자들의 리스트로 만드려면 `flatmap` 메서드를 사용해야한다.
+    ```java
+    List<String> uniqueChars = words.stream()
+                                    .map(word -> word.split(""))
+                                    .flatMap(Arrays::stream)
+                                    .distinct()
+                                    .collect(toList());
+
+    ```
+    <img src="https://github.com/dulrook/dulrook.github.io/blob/master/assets/images/flatmap.PNG?raw=true">
+
+
+    ```java
+     /**
+     * Returns a stream consisting of the results of replacing each element of
+     * this stream with the contents of a mapped stream produced by applying
+     * the provided mapping function to each element.  Each mapped stream is
+     * {@link java.util.stream.BaseStream#close() closed} after its contents
+     * have been placed into this stream.  (If a mapped stream is {@code null}
+     * an empty stream is used, instead.)
+     *
+     * <p>This is an <a href="package-summary.html#StreamOps">intermediate
+     * operation</a>.
+     *
+     * @apiNote
+     * The {@code flatMap()} operation has the effect of applying a one-to-many
+     * transformation to the elements of the stream, and then flattening the
+     * resulting elements into a new stream.
+     *
+     * <p><b>Examples.</b>
+     *
+     * <p>If {@code orders} is a stream of purchase orders, and each purchase
+     * order contains a collection of line items, then the following produces a
+     * stream containing all the line items in all the orders:
+     * <pre>{@code
+     *     orders.flatMap(order -> order.getLineItems().stream())...
+     * }</pre>
+     *
+     * <p>If {@code path} is the path to a file, then the following produces a
+     * stream of the {@code words} contained in that file:
+     * <pre>{@code
+     *     Stream<String> lines = Files.lines(path, StandardCharsets.UTF_8);
+     *     Stream<String> words = lines.flatMap(line -> Stream.of(line.split(" +")));
+     * }</pre>
+     * The {@code mapper} function passed to {@code flatMap} splits a line,
+     * using a simple regular expression, into an array of words, and then
+     * creates a stream of words from that array.
+     *
+     * @param <R> The element type of the new stream
+     * @param mapper a <a href="package-summary.html#NonInterference">non-interfering</a>,
+     *               <a href="package-summary.html#Statelessness">stateless</a>
+     *               function to apply to each element which produces a stream
+     *               of new values
+     * @return the new stream
+     */
+    <R> Stream<R> flatMap(Function<? super T, ? extends Stream<? extends R>> mapper);
+    ```
+
+## 검색과 매칭
+데이터 처리에서 또다른 일반적인 연산은 주어진 자료에서 일치하는 데이터를 찾아내는 '검색'이다.  스트림 API는 검색 기능을 다음과 같은 `allMatch, anyMatch, noneMatch, findFirst, findAny`와 같은 메서드를 통해 제공한다.
+1. Predicate가 적어도 하나의 요소와 일치하는지를 확인
+    ```java
+    if(menu.stream().anyMatch(Dish::isVegetarian)) {
+        System.out.println("The menu is (somewhat) vegetarian friendly!!");
+    }
+    ```
+
+2. Predicate가 모든 원소와 일치하는지를 확인
+    ```java
+    boolean isHealthy = menu.stream()
+                            .allMatch(dish -> dish.getCalories() < 1000);
+    ```
+
+    **NONEMATCH**
+    `noneMatch`는 `allMatch`와 정반대되는결과를 리턴한다. 이 메서드는 스트림 내에서 주어진 predicate에 대해 어떠한 요소도 일치하지 않음을 확인한다. 
+    ```java
+    boolean isHealthy = menu.stream()
+                            .noneMatch(d -> d.getCalories() >= 1000);
+    ```
+
+3. 요소 검색
+`findAny` 메서드는 현재의 스트림에서 임의의 요소를 리턴한다. 스트림 파이프라인은 스스로 최적화된 연산을 수행하여 short-circuiting을 사용해 결과를 찾고 끝낸다.
+    ```java
+    Optional<Dish> dish = menu.stream()
+                            .filter(Dish::isVegetarian)
+                            .findAny();
+    ```
+
+4. 첫 번째 요소 찾기
+    ```java
+    List<Integer> someNumbers = Arrays.asList(1, 2, 3, 4, 5);
+    Optional<Integer> firstSquareDivisibleByThree = someNumbers.stream()
+                                                                .map(n -> n * n)
+                                                                .filter(n -> n % 3 == 0)
+                                                                .findFirst(); // 9
+    ```
+
+    > **findFirst와 findAny는 언제사용해야할까?**
+    답은 병렬성이다. 첫번째 원소를 찾는 것은 병렬 연산에서 더욱 제한적이다. 어떠한 원소가 리턴되는지 상관없다면, `findAny`를 사용해라. 왜냐면 이 메서드는 병렬 스트림을 사용할 때 덜 제약적이기 때문이다. 
+
+## 리듀싱
+스트림 내에 모든 요소들을 반복적으로 결합하여 단일 값으로 만드는 쿼리를 *reduction operations* 라고 한다. 즉, 스트림이 하나의 값으로 리듀스된것이다. 
+    ```java
+    int sum = numbers.stream().reduce(0, (a,b) -> a+b);
+    ```
+`reduce`는 두 개의 인자를 갖는다:
+    - 초기값, 여기서는 0
+    - 두 요소를 결합하고 하나의 새로운 값을 만들어내는 `BinaryOperator<T>`; 여기서는 람다 (a, b) -> a + b를 사용하였다.
+    
