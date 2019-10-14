@@ -1,0 +1,394 @@
+---
+layout: splash
+title:  "[모던자바인액션] 스트림으로 데이터 수집"
+date:   2019-10-14 23:27:00 +0900
+categories: 자바
+---
+
+## Collector
+입력된 요소들을 가변적인 결과 컨테이너에 누적시키는 가변적인 감소(reduction) 연산이다. 선택적으로, 입력된 모든 요소들에 대한 처리가 끝난 후에 누적된 결과를 최종 형태로 변환시킬 수 있다. 감소 연산들은 순차 및 병렬로 수행될 수 있다.
+
+가변적인 감소 연산의 예:
+- `Collection`으로 요소들을 누적시키기
+- `StringBuilder`를 사용하여 문자열 연결시키기
+- 요소들에 요약 정보 계산하기, 예를 들어 합, 최소, 최대, 평균 등
+- "피봇 테이블" 요약 계산하기, 예를 들어 "판매자의 거래 내역 중 최대 값" 등
+`Collectors` 클래스는 다양한 일반적인 감소 연산들의 구현을 제공한다.
+
+`Collector`는 4개의 함수들로써 정의될 수 있다. 이 함수들은 가변적인 결과 컨테이너에 입력값들을 누적시키기 위해 협업한다. 그리고 선택적으로 결과로 최종 형태를 변환하는 연산을 수행할 수 있다.
+1. `supplier` - 새로운 결과 컨테이너 생성 
+2. `accumulator` - 새로운 데이터 요소들은 결과 컨테이너로 결합 
+3. `combiner` - 두 결과 컨테이너를 하나로 합침
+4. `finisher` - 선택적인 최종 컨테이너 변환을 수행
+
+또한, `Collector`에는 `CONCURRENT`와 같은 특성(characteristics)의 집합이 있는데, 이 특성들은 감소 연산 구현의 성능 향상을 위해 사용될 수 있는 힌트를 제공한다.
+
+콜렉터를 사용하여 순차적으로 reduction을 구현하면 `supplier` 함수를 사용하여 단일 결과 컨테이너를 작성하고, 각 입력 요소에 대해 `accumulator` 함수를 한 번 호출한다. 병렬 구현은 입력을 분할하고 분할된 각 파티션에 대한 결과 컨테이너를 생성한다. 그리고 각 파티션의 내용을 해당 파티션에 대한 하위 결과로 누적 한 다음 `combiner` 함수를 사용하여 하위 결과들을 병합한다.
+
+순차 실행과 병렬 실행이 동등한 결과를 생성하게하려면, collector 함수는 반드시 **identity**제약조건과 **associativity** 제약 조건을 충족해야한다.
+
+identity 제약 조건에 따르면, 부분적으로 누적된 결과에 대해 비어있는(empty) 결과 컨테이너를 결합시키면 동등한 결과가 생성되어야한다. 즉, 일련의 accumulator 및 combiner 메서드를 호출의 결과인 부분적으로 누적된 결과 a에 대해, a는 반드시 combiner.apply(a, supplier.get()) 과 동등해야한다.
+
+associativity 제약 조건에 따르면, 분할된 계산은 반드시 동등한 결과를 생성해야한다. 즉, 입력 요소 t1 및 t2에 대해, 아래 계산에서 결과 r1 및 r2는 동일해야한다.
+
+```java
+A a1 = supplier.get();
+accumulator.accept(a1, t1);
+accumulator.accept(a1, t2);
+R r1 = finisher.apply(a1);  // result without splitting
+ 
+A a2 = supplier.get();
+accumulator.accept(a2, t1);
+A a3 = supplier.get();
+accumulator.accept(a3, t2);
+R r2 = finisher.apply(combiner.apply(a2, a3));  // result with splitting
+```
+
+`UNORDERED` 특성을 갖고 있지 않은 collector에 대해, 만약 finisher.apply(a1).equals(finisher.apply(a2)) 이라면, 두 누적된 결과 a1 과 a2는 동등하다. 정렬되지 않은 collector에 대해서는, 순서의 차이에 관련된 비균등성을 허용하기 위해 동등성이 완화된다. (예를 들어, List로 요소들을 누적시킨 정렬되지 않은 collector는 순서를 무시하고 List에 포함된 요소들이 같다면 동등하다고 봐야한다.)
+
+`Collector`를 기반으로 하여 reduction을 구현하고 있는 Stream 클래스의 collect(Collector)와 같은 라이브러리들은 반드시 다음의 제약 조건을 고수해야한다:
+
+    1. accumulator 함수로 전달되는 첫번째 인자, combiner 함수 및 finisher 함수로 전달되는 인자들은 반드시 이전에 호출된 결과 supplier, accumulator, combiner 함수들의 결과여야 한다.
+
+    2. 구현은 결과 supplier, accumulator 또는 combiner 함수의 결과를 accumulator, combiner 또는 finisher 함수로 다시 전달하거나 reduction 연산의 호출자에게 반환하는 것 이외의 다른 결과를 수행해서는 안됩니다.
+
+    3. 만약 결과가 combiner 혹은 finisher 함수로 전달되면, 그 함수에서 같은 객체는 반환되지 않고 다시 재사용되지 않는다.
+
+    4. 결과가 일단 combiner 혹은 finisher 함수로 전달되면, 이 결과를 다시 accumulator 함수로 전달해서는 안된다.
+
+    5. 비-병행(concurrent)의 collector에 대해서는, 결과 supplier, accumulator, 혹은 comibner 함수로부터 반환되는 결과는 반드시 직렬 스레드로 국한한다. 이로 인해 collection이 병렬로 수행될 때, Collector가 추가적인 동기화를 필요로 하지 않게된다. reduction 구현은 반드시 입력은 적절하게 분할하고, 각 파티션들이 고립되어 수행될 수 있도록 해야한다. 그리고 결합은 오직 accumulation이 완료된 뒤에 이뤄져야한다.
+
+    6. 병행의 collector에 대해서는, 구현은 병행으로 reduction을 구현하는데 자유롭다. 병행 reduction은 결과를 accumulation 동안에 고립시키지 않고 병행으로 수정할 수 있는 결과 컨테이너를 공유하는 여러 쓰레드로부터 accumulator 함수가 병행으로 호출하는 것이다. 병행 reduction은 collector가 `UNORDERED` 특성일때 혹은 원본 데이터가 정렬되지 않은 경우에만 적용되어야 한다.
+
+
+`Collectors`에 사전에 정의된 구현들에 대해 추가적으로, 정적 팩토리 메서드들 (Supplier, BiConsumer, BinaryOperator, Characteristics...)은 collector를 생성하는데 사용될 수 있다. 예를 들어, TreeSet으로 Widget을 누적시키는 collector를 다음과 같이 만들 수 있다:
+
+```java
+ Collector<Widget, ?, TreeSet<Widget>> intoSet =
+            Collector.of(TreeSet::new, TreeSet::add,
+                        (left, right) -> { left.addAll(right); return left; });
+ }
+ ```
+
+ ```java
+* @param <T> the type of input elements to the reduction operation
+ * @param <A> the mutable accumulation type of the reduction operation (often
+ *            hidden as an implementation detail)
+ * @param <R> the result type of the reduction operation
+ * @since 1.8
+ */
+public interface Collector<T, A, R> {
+    /**
+     * A function that creates and returns a new mutable result container.
+     *
+     * @return a function which returns a new, mutable result container
+     */
+    Supplier<A> supplier();
+
+    /**
+     * A function that folds a value into a mutable result container.
+     *
+     * @return a function which folds a value into a mutable result container
+     */
+    BiConsumer<A, T> accumulator();
+
+    /**
+     * A function that accepts two partial results and merges them.  The
+     * combiner function may fold state from one argument into the other and
+     * return that, or may return a new result container.
+     *
+     * @return a function which combines two partial results into a combined
+     * result
+     */
+    BinaryOperator<A> combiner();
+
+    /**
+     * Perform the final transformation from the intermediate accumulation type
+     * {@code A} to the final result type {@code R}.
+     *
+     * <p>If the characteristic {@code IDENTITY_TRANSFORM} is
+     * set, this function may be presumed to be an identity transform with an
+     * unchecked cast from {@code A} to {@code R}.
+     *
+     * @return a function which transforms the intermediate result to the final
+     * result
+     */
+    Function<A, R> finisher();
+
+    /**
+     * Returns a {@code Set} of {@code Collector.Characteristics} indicating
+     * the characteristics of this Collector.  This set should be immutable.
+     *
+     * @return an immutable set of collector characteristics
+     */
+    Set<Characteristics> characteristics();
+
+    /**
+     * Returns a new {@code Collector} described by the given {@code supplier},
+     * {@code accumulator}, and {@code combiner} functions.  The resulting
+     * {@code Collector} has the {@code Collector.Characteristics.IDENTITY_FINISH}
+     * characteristic.
+     *
+     * @param supplier The supplier function for the new collector
+     * @param accumulator The accumulator function for the new collector
+     * @param combiner The combiner function for the new collector
+     * @param characteristics The collector characteristics for the new
+     *                        collector
+     * @param <T> The type of input elements for the new collector
+     * @param <R> The type of intermediate accumulation result, and final result,
+     *           for the new collector
+     * @throws NullPointerException if any argument is null
+     * @return the new {@code Collector}
+     */
+    public static<T, R> Collector<T, R, R> of(Supplier<R> supplier,
+                                              BiConsumer<R, T> accumulator,
+                                              BinaryOperator<R> combiner,
+                                              Characteristics... characteristics) {
+        Objects.requireNonNull(supplier);
+        Objects.requireNonNull(accumulator);
+        Objects.requireNonNull(combiner);
+        Objects.requireNonNull(characteristics);
+        Set<Characteristics> cs = (characteristics.length == 0)
+                                  ? Collectors.CH_ID
+                                  : Collections.unmodifiableSet(EnumSet.of(Collector.Characteristics.IDENTITY_FINISH,
+                                                                           characteristics));
+        return new Collectors.CollectorImpl<>(supplier, accumulator, combiner, cs);
+    }
+
+    /**
+     * Returns a new {@code Collector} described by the given {@code supplier},
+     * {@code accumulator}, {@code combiner}, and {@code finisher} functions.
+     *
+     * @param supplier The supplier function for the new collector
+     * @param accumulator The accumulator function for the new collector
+     * @param combiner The combiner function for the new collector
+     * @param finisher The finisher function for the new collector
+     * @param characteristics The collector characteristics for the new
+     *                        collector
+     * @param <T> The type of input elements for the new collector
+     * @param <A> The intermediate accumulation type of the new collector
+     * @param <R> The final result type of the new collector
+     * @throws NullPointerException if any argument is null
+     * @return the new {@code Collector}
+     */
+    public static<T, A, R> Collector<T, A, R> of(Supplier<A> supplier,
+                                                 BiConsumer<A, T> accumulator,
+                                                 BinaryOperator<A> combiner,
+                                                 Function<A, R> finisher,
+                                                 Characteristics... characteristics) {
+        Objects.requireNonNull(supplier);
+        Objects.requireNonNull(accumulator);
+        Objects.requireNonNull(combiner);
+        Objects.requireNonNull(finisher);
+        Objects.requireNonNull(characteristics);
+        Set<Characteristics> cs = Collectors.CH_NOID;
+        if (characteristics.length > 0) {
+            cs = EnumSet.noneOf(Characteristics.class);
+            Collections.addAll(cs, characteristics);
+            cs = Collections.unmodifiableSet(cs);
+        }
+        return new Collectors.CollectorImpl<>(supplier, accumulator, combiner, finisher, cs);
+    }
+
+    /**
+     * Characteristics indicating properties of a {@code Collector}, which can
+     * be used to optimize reduction implementations.
+     */
+    enum Characteristics {
+        /**
+         * Indicates that this collector is <em>concurrent</em>, meaning that
+         * the result container can support the accumulator function being
+         * called concurrently with the same result container from multiple
+         * threads.
+         *
+         * <p>If a {@code CONCURRENT} collector is not also {@code UNORDERED},
+         * then it should only be evaluated concurrently if applied to an
+         * unordered data source.
+         */
+        CONCURRENT,
+
+        /**
+         * Indicates that the collection operation does not commit to preserving
+         * the encounter order of input elements.  (This might be true if the
+         * result container has no intrinsic order, such as a {@link Set}.)
+         */
+        UNORDERED,
+
+        /**
+         * Indicates that the finisher function is the identity function and
+         * can be elided.  If set, it must be the case that an unchecked cast
+         * from A to R will succeed.
+         */
+        IDENTITY_FINISH
+    }
+}
+ ```
+
+
+ ```java
+/**
+ * Implementations of {@link Collector} that implement various useful reduction
+ * operations, such as accumulating elements into collections, summarizing
+ * elements according to various criteria, etc.
+ *
+ * <p>The following are examples of using the predefined collectors to perform
+ * common mutable reduction tasks:
+ *
+ * <pre>{@code
+ *     // Accumulate names into a List
+ *     List<String> list = people.stream().map(Person::getName).collect(Collectors.toList());
+ *
+ *     // Accumulate names into a TreeSet
+ *     Set<String> set = people.stream().map(Person::getName).collect(Collectors.toCollection(TreeSet::new));
+ *
+ *     // Convert elements to strings and concatenate them, separated by commas
+ *     String joined = things.stream()
+ *                           .map(Object::toString)
+ *                           .collect(Collectors.joining(", "));
+ *
+ *     // Compute sum of salaries of employee
+ *     int total = employees.stream()
+ *                          .collect(Collectors.summingInt(Employee::getSalary)));
+ *
+ *     // Group employees by department
+ *     Map<Department, List<Employee>> byDept
+ *         = employees.stream()
+ *                    .collect(Collectors.groupingBy(Employee::getDepartment));
+ *
+ *     // Compute sum of salaries by department
+ *     Map<Department, Integer> totalByDept
+ *         = employees.stream()
+ *                    .collect(Collectors.groupingBy(Employee::getDepartment,
+ *                                                   Collectors.summingInt(Employee::getSalary)));
+ *
+ *     // Partition students into passing and failing
+ *     Map<Boolean, List<Student>> passingFailing =
+ *         students.stream()
+ *                 .collect(Collectors.partitioningBy(s -> s.getGrade() >= PASS_THRESHOLD));
+ *
+ * }</pre>
+ *
+ * @since 1.8
+ */
+public final class Collectors {
+
+    static final Set<Collector.Characteristics> CH_CONCURRENT_ID
+            = Collections.unmodifiableSet(EnumSet.of(Collector.Characteristics.CONCURRENT,
+                                                     Collector.Characteristics.UNORDERED,
+                                                     Collector.Characteristics.IDENTITY_FINISH));
+    static final Set<Collector.Characteristics> CH_CONCURRENT_NOID
+            = Collections.unmodifiableSet(EnumSet.of(Collector.Characteristics.CONCURRENT,
+                                                     Collector.Characteristics.UNORDERED));
+    static final Set<Collector.Characteristics> CH_ID
+            = Collections.unmodifiableSet(EnumSet.of(Collector.Characteristics.IDENTITY_FINISH));
+    static final Set<Collector.Characteristics> CH_UNORDERED_ID
+            = Collections.unmodifiableSet(EnumSet.of(Collector.Characteristics.UNORDERED,
+                                                     Collector.Characteristics.IDENTITY_FINISH));
+    static final Set<Collector.Characteristics> CH_NOID = Collections.emptySet();
+
+    private Collectors() { }
+
+    /**
+     * Returns a merge function, suitable for use in
+     * {@link Map#merge(Object, Object, BiFunction) Map.merge()} or
+     * {@link #toMap(Function, Function, BinaryOperator) toMap()}, which always
+     * throws {@code IllegalStateException}.  This can be used to enforce the
+     * assumption that the elements being collected are distinct.
+     *
+     * @param <T> the type of input arguments to the merge function
+     * @return a merge function which always throw {@code IllegalStateException}
+     */
+    private static <T> BinaryOperator<T> throwingMerger() {
+        return (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u)); };
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <I, R> Function<I, R> castingIdentity() {
+        return i -> (R) i;
+    }
+
+    /**
+     * Simple implementation class for {@code Collector}.
+     *
+     * @param <T> the type of elements to be collected
+     * @param <R> the type of the result
+     */
+    static class CollectorImpl<T, A, R> implements Collector<T, A, R> {
+        private final Supplier<A> supplier;
+        private final BiConsumer<A, T> accumulator;
+        private final BinaryOperator<A> combiner;
+        private final Function<A, R> finisher;
+        private final Set<Characteristics> characteristics;
+
+        CollectorImpl(Supplier<A> supplier,
+                      BiConsumer<A, T> accumulator,
+                      BinaryOperator<A> combiner,
+                      Function<A,R> finisher,
+                      Set<Characteristics> characteristics) {
+            this.supplier = supplier;
+            this.accumulator = accumulator;
+            this.combiner = combiner;
+            this.finisher = finisher;
+            this.characteristics = characteristics;
+        }
+
+        CollectorImpl(Supplier<A> supplier,
+                      BiConsumer<A, T> accumulator,
+                      BinaryOperator<A> combiner,
+                      Set<Characteristics> characteristics) {
+            this(supplier, accumulator, combiner, castingIdentity(), characteristics);
+        }
+
+        @Override
+        public BiConsumer<A, T> accumulator() {
+            return accumulator;
+        }
+
+        @Override
+        public Supplier<A> supplier() {
+            return supplier;
+        }
+
+        @Override
+        public BinaryOperator<A> combiner() {
+            return combiner;
+        }
+
+        @Override
+        public Function<A, R> finisher() {
+            return finisher;
+        }
+
+        @Override
+        public Set<Characteristics> characteristics() {
+            return characteristics;
+        }
+    }
+
+
+....
+
+/**
+     * Returns a {@code Collector} that accumulates the input elements into a
+     * new {@code List}. There are no guarantees on the type, mutability,
+     * serializability, or thread-safety of the {@code List} returned; if more
+     * control over the returned {@code List} is required, use {@link #toCollection(Supplier)}.
+     *
+     * @param <T> the type of the input elements
+     * @return a {@code Collector} which collects all the input elements into a
+     * {@code List}, in encounter order
+     */
+    public static <T>
+    Collector<T, ?, List<T>> toList() {
+        return new CollectorImpl<>((Supplier<List<T>>) ArrayList::new, List::add,
+                                   (left, right) -> { left.addAll(right); return left; },
+                                   CH_ID);
+    }
+
+
+.....
+
+
+}
+
+ ```
