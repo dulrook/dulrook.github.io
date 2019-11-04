@@ -1,0 +1,173 @@
+---
+layout: splash
+title:  "[모던자바인액션] 람다 표현식으로 코드 리팩토링"
+date:   2019-11-04 23:27:00 +0900
+categories: 자바
+---
+
+## 가독성과 유연성 향상을 위한 리팩토링
+- 람다 표현식을 통해 보다 간결하고 유연한 코드를 작성할 수 있다
+    - 동작의 부분을 표현할 때, 익명 클래스보다 훨씬 함축적으로 나타낼 수 있기 때문
+- 메서드 참조를 통해 더더욱 간결한 코드를 작성할 수 있다
+- 람다 표현식을 통해 동작 파라미터화를 하여 코드를 보다 유연하게 할 수 있다
+    - 요구 사항 변경에 대응하기 위해 여러 동작들을 인자로써 넘길 수 있기 때문 
+
+### 1. 가독성 향상시키기
+- 좋은 가독성에 대한 일반적인 관점은 "다른 사람이 해당 코드를 얼마나 쉽게 이해할 수 있는가"를 의미한다.
+    - 불필요한 코드를 제거한다
+    - 메서드 참조나 스트림 API를 사용하여 코드의 의도를 명확히한다
+- 람다, 메서드참조, 스트림을 사용하는 기본 리팩토링 방법 3가지
+    - 익명 클래스를 람다 표현식으로 리팩토링
+    - 람다 표현식을 메서드 참조로 리팩토링
+    - 명령형 데이터처리를 스트림으로 리팩토링
+
+1-1. 익명 클래스로부터 람다표현식으로
+- 익명 클래스가 구현하는 단일 추상 메서드를 람다 표현식으로 변환한다
+
+```java
+Runnable r1 = new Runnable() { // Before, using an anonymous class
+    public void run() {
+        System.out.println("Hello");
+    }
+}
+Runanble r2 = () -> System.out.println("Hello"); // After, using a lambda expression
+```
+    
+- 변환 시 주의할 점
+    - 익명 클래스와 람다 표현식에서 `this`와 `super`의 의미가 각각 다르다
+        - 익명 클래스 내부에서 `this`는 익명 클래스 자신을 가리키지만, 람다 내부에서 `this`는 람다를 감싸고 있는 클래스를 의미한다. 
+        - 익명 클래스는 shadow variable을 허용하지만, 람다 표현식에서는 컴파일 에러가 발생한다.
+        - 익명 클래스에서 람다 표현식으로 변환하는 것은 컨텍스트 오버로딩에서의 코드 모호함을 발생시킬 수 있다.
+        ```java
+        interface Task {
+            public void execute();
+        }
+        public static void doSomething(Runnable r) { r.run(); }
+        public static void doSomething(Task a) { r.execute(); }
+
+        // Before, using an anonymous class.
+        doSomething(new Task() {
+            public void execute() {
+                System.out.println("Danger danger!!");
+            }
+        })
+        // After, coverting to lambda expression. 
+        // But it results in an ambiguous method call.
+        doSomething(() -> System.out.println("Danger danger!!")); // 
+
+        // Solution by providing an explicit cast (Task)
+        doSomething((Task) () -> System.out.println("Danger danger!!"));
+        ```
+        - 다행히도 대부분 IDE에서 이런 리팩토링을 자동으로 해준다
+
+1-2. 람다 표현식으로부터 메서드 참조로
+- 람다 표현식을 짧은 코드에는 효과적이지만 복잡한 로직에서는 메서드 참조를 고려해야한다.
+    
+```java
+// Before, lambda expression
+Map<CaloricLevel, List<Dish>> dishesByCaloricLevel = 
+    menu.stream()
+        .collect(
+            groupingBy(dish -> {
+                if (dish.getCalories() <= 400) return CaloricLevel.DIET;
+                else if (dish.getCalories() <= 700) return CaloricLevel.NORMAL;
+                else return CaloricLevel.FAT;
+            }));
+
+// After, method references
+Map<CaloricLevel, List<Dish>> dishesByCaloricLevel =
+    menu.stream().collect(groupingBy(Dish::getCaloricLevel));
+
+// For method reference, you need to add the method getCaloricLevel inside the Dish class
+public class Dish{
+    ...
+    public CaloricLevel getCaloricLevel() {
+        if (dish.getCalories() <= 400) return CaloricLevel.DIET;
+        else if (dish.getCalories() <= 700) return CaloricLevel.NORMAL;
+        else return CaloricLevel.FAT;
+    }
+}
+```
+- 추가로, 메서드 참조를 사용할 때 `comparing`, `maxBy`와 같은 헬퍼 메서드를 함께 사용하면 더욱 코드의 의도성을 분명하게 할 수 있다. `sum`,`maximum`과 같은 일반적인 reduction 연산에 대한 내장 헬퍼 메서드들을 메서드 참조와 함께 결합하여 사용할 수 있다.
+```java
+int totalCalories =
+    menu.stream().map(Dish::getCalories)
+        .reduce(0, (c1, c2) -> c1 + c2);
+
+int totalCalories = menu.stream().collect(summingInt(Dish::getCalories));
+```
+
+1-3. 명령형 데이터처리로부터 스트림으로
+- 이론적으로, 반복자를 사용하여 데이터 처리를 하는 전형적인 컬렉션 코드들은 스트림 API로 변환시켜야한다.
+    - 스트림 API는 데이터 처리 파이프라인의 의도를 더욱 명료하게 함
+    - 스트림은 편리하게 최적화를 할 수 있음
+```java
+// The following imperative code expresses two patterns (filtering and extracting)
+List<String> dishNames = new ArrayList<>();
+    for(Dish dish: menu) {
+        if(dish.getCalories() > 300){
+        dishNames.add(dish.getName());
+    }
+}
+
+// The alternative, which uses the Streams API
+menu.parallelStream()
+    .filter(d -> d.getCalories() > 300)
+    .map(Dish::getName)
+    .collect(toList());
+```
+- 그러나, 제어문이 복잡한 명령형 코드를 스트림 API로 변환하는 것은 어려운 작업이 될 수 있다. 
+    - Lambda-Ficator 와 같은 툴을 사용하면 도움이 된다.
+
+### 2. 코드 유연성 향상시키기
+- 여러 가지 람다들을 이용한 동작 파라미터화를 통해 코드의 유연성을 향상시킬 수 있다.
+
+**함수형 인터페이스 적용**
+- 람다 표현식 사용을 위해서는 반드시 함수형 인터페이스가 필요하다.
+- 다음은 자주 사용되는 코드 패턴으로, 람다 표현식을 통해 리팩토링할 수 있다: Conditional deferred execution, execute around
+1. 조건부 연기 실행(Conditional deferred execution)
+    - 흔히 로깅 관련 코드가 비즈니스 로직 내부에 제어문으로 복잡하게 얽혀있다.
+    ```java
+    if (logger.isLoggable(Log.FINER)) {
+        logger.finer("Problem: " + generateDiagnostic());
+    }
+    ```
+    - 위 코드의 문제점은 1) 메서드 `isLoggable`을 통해 logger의 상태가 클라이언트 코드 내에 노출되고, 2) 로깅할때마다 logger 객체의 상태를 매번 확인해야한다.
+
+    ```java
+    // A better alternative using the log method. 
+    // It checks internally to see whether the logger object is set to the right level before logging the message.
+    logger.log(Level.FINER, "Problem: " + generateDiagnostic());
+    ```
+    - 이 방법은 불필요한 if문을 제거하여 좀 더 깔끔해졌고, logger의 상태를 더이상 노출시키지 않는다.
+    - 그러나 여전히 문제점이 있다: logger가 활성화되지 않는 message level이 인자로 전달될 때도, 로깅 메시지를 항상 evaluate 해야한다.
+    - 람다 표현식을 사용하여, 특정 조건(logger level이 `FINER` 일 때)에서만 메시지가 생성될 수 있도록 메시지 생성을 연기시킬 수 있다.
+    ```java
+    logger.log(Level.FINER, () -> "Problem: " + generateDiagnostic());
+
+    public void log(Level level, Supplier<String> msgSupplier) {
+        if(logger.isLoggable(level)){
+            log(level, msgSupplier.get());
+        }
+    }
+    ```
+
+2. 실행 어라운드(Execute around)
+- 3장에서 소개한 실행 어라운드 패턴으로써, 어떤 다른 코드를 감싸고 있는 동일한 준비과정에 람다를 적용할 수 있다.
+- 로직을 재사용하고, 코드 중복을 제거할 수 있는 이점이 있다.
+
+```java
+String oneLine =
+    processFile((BufferedReader b) -> b.readLine()); // Pass a lambda
+String twoLines =
+    processFile((BufferedReader b) -> b.readLine() + b.readLine());  // Pass a different lambda
+public static String processFile(BufferedReaderProcessor p) throws IOException {
+    try(BufferedReader br = new BufferedReader(new
+        FileReader("ModernJavaInAction/chap9/data.txt"))) {
+            return p.process(br); // Execute the BufferedReaderProcessor passed as an argument.
+    }
+}
+public interface BufferedReaderProcessor { // A functional interface for a lambda
+    String process(BufferedReader b) throws IOException;
+}
+```
