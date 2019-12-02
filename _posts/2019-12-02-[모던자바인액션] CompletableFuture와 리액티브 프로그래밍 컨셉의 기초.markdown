@@ -5,385 +5,152 @@ date:   2019-12-02 23:27:00 +0900
 categories: 자바
 ---
 
-## 필터링
-1. Predicate 필터링
-    - 스트림 인터페이스에서 제공하는 filter메서드는 *predicate*를 인수로 받아서, *predicate*과 일치하는 요소들을 스트림으로 리턴한다.
-    ```java
-    List<Dish> vegetarianMenu = menu.stream()
-                                    .filter(Dish::isVegetarian)
-                                    .collect(toList());
-    ```
-2. 고유 요소 필터링
-    - 스트림은 unique 요소들만 포함하는 스트림을 반환하는 `distinct` 메서드를 제공한다.
-    ```java
-    List<Integer> numbers = Arrays.asList(1, 2, 1, 2, 3, 2, 4);
-    numbers.stream()
-            .filter(i -> i % 2 == 0) // 2, 2, 4
-            .distinct() // 2, 4
-            .forEach(System.out::println);
-    ```
+## 소프트웨어 개발의 두가지 트렌드
+1. 어플리케이션을 실행시키는 하드웨어
+    - 멀티코어 프로세서의 발달
+    - 프로세서를 얼마나 효율적으로 사용하는지가 어플리케이션의 성능을 좌우함
+    - 간편하게 커다란 태스크를 서브태스크로 나누어 병렬 처리하기 위해 포크/조인 프레임워크(자바7)와 병렬 스트림(자바8)이 등장
+    - 병렬 스트림을 사용함으로써 쓰레드를 직접 사용할때보다 효율적이고 간편함
+2. 어플리케이션을 상호작용 하도록 구조 설계
+    - 마이크로서비스 아키텍처의 증가
+    - 최근에는 독립적으로 동작하는 서비스는 거의 없으며, 여러 웹서비스에 접근하여 정보를 처리한다. 
+    - 다른 서비스의 응답을 기다리느라 블록킹이 발생하지 않도록해야 한다
 
-## 스트림 슬라이싱
-1. Predicate를 이용한 슬라이싱
-    - `takeWhile`
-        ```java
-        /**
-        * Returns, if this stream is ordered, a stream consisting of the remaining
-        * elements of this stream after dropping the longest prefix of elements
-        * that match the given predicate.  Otherwise returns, if this stream is
-        * unordered, a stream consisting of the remaining elements of this stream
-        * after dropping a subset of elements that match the given predicate.
-        *
-        * <p>If this stream is ordered then the longest prefix is a contiguous
-        * sequence of elements of this stream that match the given predicate.  The
-        * first element of the sequence is the first element of this stream, and
-        * the element immediately following the last element of the sequence does
-        * not match the given predicate.
-        *
-        * <p>If this stream is unordered, and some (but not all) elements of this
-        * stream match the given predicate, then the behavior of this operation is
-        * nondeterministic; it is free to drop any subset of matching elements
-        * (which includes the empty set).
-        *
-        * <p>Independent of whether this stream is ordered or unordered if all
-        * elements of this stream match the given predicate then this operation
-        * drops all elements (the result is an empty stream), or if no elements of
-        * the stream match the given predicate then no elements are dropped (the
-        * result is the same as the input).
-        *
-        * <p>This is a <a href="package-summary.html#StreamOps">stateful
-        * intermediate operation</a>.
-        *
-        * @implSpec
-        * The default implementation obtains the {@link #spliterator() spliterator}
-        * of this stream, wraps that spliterator so as to support the semantics
-        * of this operation on traversal, and returns a new stream associated with
-        * the wrapped spliterator.  The returned stream preserves the execution
-        * characteristics of this stream (namely parallel or sequential execution
-        * as per {@link #isParallel()}) but the wrapped spliterator may choose to
-        * not support splitting.  When the returned stream is closed, the close
-        * handlers for both the returned and this stream are invoked.
-        *
-        * @apiNote
-        * While {@code dropWhile()} is generally a cheap operation on sequential
-        * stream pipelines, it can be quite expensive on ordered parallel
-        * pipelines, since the operation is constrained to return not just any
-        * valid prefix, but the longest prefix of elements in the encounter order.
-        * Using an unordered stream source (such as {@link #generate(Supplier)}) or
-        * removing the ordering constraint with {@link #unordered()} may result in
-        * significant speedups of {@code dropWhile()} in parallel pipelines, if the
-        * semantics of your situation permit.  If consistency with encounter order
-        * is required, and you are experiencing poor performance or memory
-        * utilization with {@code dropWhile()} in parallel pipelines, switching to
-        * sequential execution with {@link #sequential()} may improve performance.
-        *
-        * @param predicate a <a href="package-summary.html#NonInterference">non-interfering</a>,
-        *                  <a href="package-summary.html#Statelessness">stateless</a>
-        *                  predicate to apply to elements to determine the longest
-        *                  prefix of elements.
-        * @return the new stream
-        * @since 9
-        */
-        default Stream<T> dropWhile(Predicate<? super T> predicate) {
-            Objects.requireNonNull(predicate);
-            // Reuses the unordered spliterator, which, when encounter is present,
-            // is safe to use as long as it configured not to split
-            return StreamSupport.stream(
-                    new WhileOps.UnorderedWhileSpliterator.OfRef.Dropping<>(spliterator(), true, predicate),
-                    isParallel()).onClose(this::close);
-        }
-        ```
+- 병렬성과 동시성
+    - 동시성은 단일 코어 머신에서 발생할 수 있는 프로그래밍 속성인 반면 병렬성은 하드웨어 실행의 속성이다.
+    - 병렬성을 위한 유용한 툴로 포크/조인 프레임워크와 병렬 스트림을 사용할 수 있다.
+    - 동시성을 다룰때는, 혹은 주요 목표가 같은 CPU내에서 느슨하게 연관된 여러 태스크들을 수행하는 것이라면, 코어들을 최대한 바쁘게하여 어플리케이션의 처리량(Throughput)을 최대화해야한다. 이를 위해서는 쓰레드 블록킹을 피하고 다른 서비스로부터 계산 결과를 기다리느라 연산 리소스가 낭비되지 않도록 해야한다.
 
-    - `dropWhile`
-        ```java
-        /**
-        * Returns, if this stream is ordered, a stream consisting of the remaining
-        * elements of this stream after dropping the longest prefix of elements
-        * that match the given predicate.  Otherwise returns, if this stream is
-        * unordered, a stream consisting of the remaining elements of this stream
-        * after dropping a subset of elements that match the given predicate.
-        *
-        * <p>If this stream is ordered then the longest prefix is a contiguous
-        * sequence of elements of this stream that match the given predicate.  The
-        * first element of the sequence is the first element of this stream, and
-        * the element immediately following the last element of the sequence does
-        * not match the given predicate.
-        *
-        * <p>If this stream is unordered, and some (but not all) elements of this
-        * stream match the given predicate, then the behavior of this operation is
-        * nondeterministic; it is free to drop any subset of matching elements
-        * (which includes the empty set).
-        *
-        * <p>Independent of whether this stream is ordered or unordered if all
-        * elements of this stream match the given predicate then this operation
-        * drops all elements (the result is an empty stream), or if no elements of
-        * the stream match the given predicate then no elements are dropped (the
-        * result is the same as the input).
-        *
-        * <p>This is a <a href="package-summary.html#StreamOps">stateful
-        * intermediate operation</a>.
-        *
-        * @implSpec
-        * The default implementation obtains the {@link #spliterator() spliterator}
-        * of this stream, wraps that spliterator so as to support the semantics
-        * of this operation on traversal, and returns a new stream associated with
-        * the wrapped spliterator.  The returned stream preserves the execution
-        * characteristics of this stream (namely parallel or sequential execution
-        * as per {@link #isParallel()}) but the wrapped spliterator may choose to
-        * not support splitting.  When the returned stream is closed, the close
-        * handlers for both the returned and this stream are invoked.
-        *
-        * @apiNote
-        * While {@code dropWhile()} is generally a cheap operation on sequential
-        * stream pipelines, it can be quite expensive on ordered parallel
-        * pipelines, since the operation is constrained to return not just any
-        * valid prefix, but the longest prefix of elements in the encounter order.
-        * Using an unordered stream source (such as {@link #generate(Supplier)}) or
-        * removing the ordering constraint with {@link #unordered()} may result in
-        * significant speedups of {@code dropWhile()} in parallel pipelines, if the
-        * semantics of your situation permit.  If consistency with encounter order
-        * is required, and you are experiencing poor performance or memory
-        * utilization with {@code dropWhile()} in parallel pipelines, switching to
-        * sequential execution with {@link #sequential()} may improve performance.
-        *
-        * @param predicate a <a href="package-summary.html#NonInterference">non-interfering</a>,
-        *                  <a href="package-summary.html#Statelessness">stateless</a>
-        *                  predicate to apply to elements to determine the longest
-        *                  prefix of elements.
-        * @return the new stream
-        * @since 9
-        */
-        default Stream<T> dropWhile(Predicate<? super T> predicate) {
-            Objects.requireNonNull(predicate);
-            // Reuses the unordered spliterator, which, when encounter is present,
-            // is safe to use as long as it configured not to split
-            return StreamSupport.stream(
-                    new WhileOps.UnorderedWhileSpliterator.OfRef.Dropping<>(spliterator(), true, predicate),
-                    isParallel()).onClose(this::close);
-        }
-        ```
+<img src="https://github.com/dulrook/dulrook.github.io/blob/master/assets/images/concurrency%20vs%20parallelism.PNG?raw=true">
 
-2. 스트림 축소
-    - 스트림은 `limit(n)` 메서드를 제공하여, 주어진 사이즈 이하의 스트림을 리턴하도록한다.
-    ```java
-    /* Stream.java */
-    /**
-     * Returns a stream consisting of the elements of this stream, truncated
-     * to be no longer than {@code maxSize} in length.
-     *
-     * <p>This is a <a href="package-summary.html#StreamOps">short-circuiting
-     * stateful intermediate operation</a>.
-     *
-     * @apiNote
-     * While {@code limit()} is generally a cheap operation on sequential
-     * stream pipelines, it can be quite expensive on ordered parallel pipelines,
-     * especially for large values of {@code maxSize}, since {@code limit(n)}
-     * is constrained to return not just any <em>n</em> elements, but the
-     * <em>first n</em> elements in the encounter order.  Using an unordered
-     * stream source (such as {@link #generate(Supplier)}) or removing the
-     * ordering constraint with {@link #unordered()} may result in significant
-     * speedups of {@code limit()} in parallel pipelines, if the semantics of
-     * your situation permit.  If consistency with encounter order is required,
-     * and you are experiencing poor performance or memory utilization with
-     * {@code limit()} in parallel pipelines, switching to sequential execution
-     * with {@link #sequential()} may improve performance.
-     *
-     * @param maxSize the number of elements the stream should be limited to
-     * @return the new stream
-     * @throws IllegalArgumentException if {@code maxSize} is negative
-     */
-    Stream<T> limit(long maxSize);
+## 동시성을 지원하는 자바의 진화
+- 초기 자바에는 lock(`synchronized` 키워드가 사용된 클래스와 메서드), `Runnable`, `Threads`가 있었다.
+> **14.19. The `synchronized` Statement**
+> A synchronized statement acquires a mutual-exclusion lock (§17.1) on behalf of the executing > thread, executes a block, then releases the lock. While the executing thread owns the lock, no > other thread may acquire the lock.
+>> SynchronizedStatement:
+    synchronized ( Expression ) Block
+>
+> ***The type of Expression must be a reference type, or a compile-time error occurs.***
+>
+> 인스턴스 메서드, 스태틱 메서드, 인스턴스 메서드 코드블록, 스태틱 메서드 코드블록에 사용된다.
 
-    /* ReferencePipeline.java*/
-    @Override
-    public final Stream<P_OUT> limit(long maxSize) {
-        if (maxSize < 0)
-            throw new IllegalArgumentException(Long.toString(maxSize));
-        return SliceOps.makeRef(this, 0, maxSize);
+- 2004년 자바5는 좀 더 표현력있는 동시성을 지원하는 `java.util.concurrent` 패키지를 소개했다. 특히, 쓰레드 실행과 태스크 제출을 분리시킨 `ExecutorService`와 `Callable<T>`, `Future<T>` 를 지원한다.
+- 자바 7에서는 분할정복 알고리즘의 포크/조인 구현을 지원하는 `java.util.concurrent.RecursiveTask` 가 추가되었다.
+- 자바 8에는 `Streams`과 병렬 처리를 지원한다. 또한 동시성 기능을 강화하기 위해 Future를 조합하는 `CompletableFuture`를 지원한다.
+- 자바9는 분산 비동기 프로그래밍을 명시적으로 지원한다.
+
+## Synchronous and asynchronous APIs
+다음의 메서드 f와 g의 결과를 합산하는 문제를 예로 생각해보자.
+```java
+int f(int x);
+int g(int x);
+```
+위 시그니처는 *synchronous API* 인데 왜냐하면 위 메서드들이 물리적으로 값이 반환될 때 반환을 하기 때문이다. 각 함수를 호출하고 더하는 코드는 아래와 같이 작성할 수 있다.
+```java
+int y = f(x);
+int z = g(x);
+System.out.println(y+z);
+```
+여기서 메서드 f와 g가 실행하는데 아주 오래걸린다고 가정해보자. f와 g가 서로 상호작용하지 않는다는 점을 알고있다면 각각을 다른 CPU 코어에서 실행하도록 하는 것이 가장 시간이 적게 드는 방법일 것이다. 별도의 쓰레드에서 f와 g를 실행하도록 구현하기만하면 된다. 그러나 이러한 접근은 단순했던 코드를 복잡하게 만든다.
+```java
+class ThreadExample {
+    public static void main(String[] args) throws InterruptedException {
+        int x = 1337;
+        Result result = new Result();
+        
+        Thread t1 = new Thread(() -> { result.left = f(x); } ); // 람다 표현식으로 Runnable 구현
+        Thread t2 = new Thread(() -> { result.right = g(x); });
+        t1.start();
+        t2.start();
+        t1.join();
+        t2.join();
+        System.out.println(result.left + result.right);
     }
-    ```
-
-3. 스킵
-    - 스트림은 `skip(n)` 메서드를 제공하여, 처음 n개의 요소를 건너뛰고 처리된 스트림을 리턴하도록한다. 
-    ```java
-    /* Stream.java */
-    /**
-     * Returns a stream consisting of the remaining elements of this stream
-     * after discarding the first {@code n} elements of the stream.
-     * If this stream contains fewer than {@code n} elements then an
-     * empty stream will be returned.
-     *
-     * <p>This is a <a href="package-summary.html#StreamOps">stateful
-     * intermediate operation</a>.
-     *
-     * @apiNote
-     * While {@code skip()} is generally a cheap operation on sequential
-     * stream pipelines, it can be quite expensive on ordered parallel pipelines,
-     * especially for large values of {@code n}, since {@code skip(n)}
-     * is constrained to skip not just any <em>n</em> elements, but the
-     * <em>first n</em> elements in the encounter order.  Using an unordered
-     * stream source (such as {@link #generate(Supplier)}) or removing the
-     * ordering constraint with {@link #unordered()} may result in significant
-     * speedups of {@code skip()} in parallel pipelines, if the semantics of
-     * your situation permit.  If consistency with encounter order is required,
-     * and you are experiencing poor performance or memory utilization with
-     * {@code skip()} in parallel pipelines, switching to sequential execution
-     * with {@link #sequential()} may improve performance.
-     *
-     * @param n the number of leading elements to skip
-     * @return the new stream
-     * @throws IllegalArgumentException if {@code n} is negative
-     */
-    Stream<T> skip(long n);
-
-    /* ReferencePipeline.java*/
-    @Override
-    public final Stream<P_OUT> skip(long n) {
-        if (n < 0)
-            throw new IllegalArgumentException(Long.toString(n));
-        if (n == 0)
-            return this;
-        else
-            return SliceOps.makeRef(this, n, -1);
+    private static class Result {
+        private int left;
+        private int right;
     }
-    ```
+}
 
-## 매핑
-특정한 객체들로부터 정보를 선택하는 것은 일반적인 데이터 처리에서 가장 흔한 일이다. 예를 들어, SQL에서는 테이블로부터 특정 칼럼을 선택할 수 있다. 스트림 API는 유사한 기능을 `map`과 `flatMap` 메서드를 통해 제공한다.
-
-1. 스트림의 각 요소에 함수 적용하기
-스트림은 함수를 인자로 받는 `map` 메서드를 지원한다. 함수는 각 요소에 적용되어, 요소들은 새로운 요소로 매핑된다. 예를 들어, 다음 코드는 메서드 참조로 `Dish::getName`을 `map` 메서드에 전달하여 스트림 내에 요리들의 이름을 추출해낸다. 
-
-    ```java
-    List<String> dishNames = menu.stream()
-                                .map(Dish::getName)
-                                .collect(toList());
-    ```
-
-    ```java
-    /**
-     * Returns a stream consisting of the results of applying the given
-     * function to the elements of this stream.
-     *
-     * <p>This is an <a href="package-summary.html#StreamOps">intermediate
-     * operation</a>.
-     *
-     * @param <R> The element type of the new stream
-     * @param mapper a <a href="package-summary.html#NonInterference">non-interfering</a>,
-     *               <a href="package-summary.html#Statelessness">stateless</a>
-     *               function to apply to each element
-     * @return the new stream
-     */
-    <R> Stream<R> map(Function<? super T, ? extends R> mapper);
-    ```
-
-2. 스트림 납작하게 만들기
-["Hello", "World"] 를 ["H","e","l","o","W","r","d"] 와 같은 고유한 문자들의 리스트로 만드려면 `flatmap` 메서드를 사용해야한다.
-    ```java
-    List<String> uniqueChars = words.stream()
-                                    .map(word -> word.split(""))
-                                    .flatMap(Arrays::stream)
-                                    .distinct()
-                                    .collect(toList());
-
-    ```
-    <img src="https://github.com/dulrook/dulrook.github.io/blob/master/assets/images/flatmap.PNG?raw=true">
-
-
-    ```java
-     /**
-     * Returns a stream consisting of the results of replacing each element of
-     * this stream with the contents of a mapped stream produced by applying
-     * the provided mapping function to each element.  Each mapped stream is
-     * {@link java.util.stream.BaseStream#close() closed} after its contents
-     * have been placed into this stream.  (If a mapped stream is {@code null}
-     * an empty stream is used, instead.)
-     *
-     * <p>This is an <a href="package-summary.html#StreamOps">intermediate
-     * operation</a>.
-     *
-     * @apiNote
-     * The {@code flatMap()} operation has the effect of applying a one-to-many
-     * transformation to the elements of the stream, and then flattening the
-     * resulting elements into a new stream.
-     *
-     * <p><b>Examples.</b>
-     *
-     * <p>If {@code orders} is a stream of purchase orders, and each purchase
-     * order contains a collection of line items, then the following produces a
-     * stream containing all the line items in all the orders:
-     * <pre>{@code
-     *     orders.flatMap(order -> order.getLineItems().stream())...
-     * }</pre>
-     *
-     * <p>If {@code path} is the path to a file, then the following produces a
-     * stream of the {@code words} contained in that file:
-     * <pre>{@code
-     *     Stream<String> lines = Files.lines(path, StandardCharsets.UTF_8);
-     *     Stream<String> words = lines.flatMap(line -> Stream.of(line.split(" +")));
-     * }</pre>
-     * The {@code mapper} function passed to {@code flatMap} splits a line,
-     * using a simple regular expression, into an array of words, and then
-     * creates a stream of words from that array.
-     *
-     * @param <R> The element type of the new stream
-     * @param mapper a <a href="package-summary.html#NonInterference">non-interfering</a>,
-     *               <a href="package-summary.html#Statelessness">stateless</a>
-     *               function to apply to each element which produces a stream
-     *               of new values
-     * @return the new stream
-     */
-    <R> Stream<R> flatMap(Function<? super T, ? extends Stream<? extends R>> mapper);
-    ```
-
-## 검색과 매칭
-데이터 처리에서 또다른 일반적인 연산은 주어진 자료에서 일치하는 데이터를 찾아내는 '검색'이다.  스트림 API는 검색 기능을 다음과 같은 `allMatch, anyMatch, noneMatch, findFirst, findAny`와 같은 메서드를 통해 제공한다.
-1. Predicate가 적어도 하나의 요소와 일치하는지를 확인
-    ```java
-    if(menu.stream().anyMatch(Dish::isVegetarian)) {
-        System.out.println("The menu is (somewhat) vegetarian friendly!!");
+class Funtions {
+    public static int f(int x) {
+         return x * 2;
     }
-    ```
-
-2. Predicate가 모든 원소와 일치하는지를 확인
-    ```java
-    boolean isHealthy = menu.stream()
-                            .allMatch(dish -> dish.getCalories() < 1000);
-    ```
-
-    **NONEMATCH**
-    `noneMatch`는 `allMatch`와 정반대되는결과를 리턴한다. 이 메서드는 스트림 내에서 주어진 predicate에 대해 어떠한 요소도 일치하지 않음을 확인한다. 
-    ```java
-    boolean isHealthy = menu.stream()
-                            .noneMatch(d -> d.getCalories() >= 1000);
-    ```
-
-3. 요소 검색
-`findAny` 메서드는 현재의 스트림에서 임의의 요소를 리턴한다. 스트림 파이프라인은 스스로 최적화된 연산을 수행하여 short-circuiting을 사용해 결과를 찾고 끝낸다.
-    ```java
-    Optional<Dish> dish = menu.stream()
-                            .filter(Dish::isVegetarian)
-                            .findAny();
-    ```
-
-4. 첫 번째 요소 찾기
-    ```java
-    List<Integer> someNumbers = Arrays.asList(1, 2, 3, 4, 5);
-    Optional<Integer> firstSquareDivisibleByThree = someNumbers.stream()
-                                                                .map(n -> n * n)
-                                                                .filter(n -> n % 3 == 0)
-                                                                .findFirst(); // 9
-    ```
-
-    > **findFirst와 findAny는 언제사용해야할까?**
-    답은 병렬성이다. 첫번째 원소를 찾는 것은 병렬 연산에서 더욱 제한적이다. 어떠한 원소가 리턴되는지 상관없다면, `findAny`를 사용해라. 왜냐면 이 메서드는 병렬 스트림을 사용할 때 덜 제약적이기 때문이다. 
-
-## 리듀싱
-스트림 내에 모든 요소들을 반복적으로 결합하여 단일 값으로 만드는 쿼리를 *reduction operations* 라고 한다. 즉, 스트림이 하나의 값으로 리듀스된것이다. 
-    ```java
-    int sum = numbers.stream().reduce(0, (a,b) -> a+b);
-    ```
-`reduce`는 두 개의 인자를 갖는다:
-    - 초기값, 여기서는 0
-    - 두 요소를 결합하고 하나의 새로운 값을 만들어내는 `BinaryOperator<T>`; 여기서는 람다 (a, b) -> a + b를 사용하였다.
     
+    public static int g(int x) {
+        return x + 1;
+    }
+}
+```
+
+위 코드를 `Runnable` 대신 `Future`를 이용해 단순화시킬 수 있다. `ExecutorService`로 쓰레드 풀을  설정했다고 가정하자.
+```java
+public class ExecutorServiceExample {
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        int x = 1337;
+
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        Future<Integer> y = executorService.submit(() -> f(x));
+        Future<Integer> z = executorService.submit(() -> g(x));
+        System.out.println(y.get() + z.get());
+    
+        executorService.shutdown();
+    }
+}
+```
+그러나 여전히 위 코드도 명시적으로 `submit`를 호출하여 코드를 오염시키고 있다. 문제의 해결은 API를 *asynchronous API* 로 전환하는 것이다. 메서드가 물리적으로 계산이 끝남과 동시에 caller에게 값을 리턴하는 synchronous 방식 대신에, 물리적으로 계산이 끝나기 전에 caller에게 리턴하도록 하는것이다. 따라서 f 를 호출하고나서 병렬로 g를 호출할 수 있게된다. 병렬성을 사용하기 위해 두 가지 방법을 사용할 수 있는데, 두 방법은 모두 f 와 g의 시그니처를 변경한다.
+
+*1. Futures 사용하기*
+- 자바 5에서 등장하였고 자바8에서 조합 가능하도록 `ComletableFuture`로 발전되었다.
+- 이 방법을 사용하면 f,g의 시그니처는 다음처럼 바뀐다. 
+    ```java
+    Future<Integer> f(int x);
+    Future<Integer> g(int x);
+
+    Future<Integer> y = f(x);
+    Future<Integer> z = g(x);
+    System.out.println(y.get() + z.get());
+    ```
+- 좀 더 큰 프로그램에서는 이러한 방식은 사용하지 않는다.
+
+*2. 리액티브 프로그래밍 스타일*
+- 발행-구독 프로토콜 기반의 자바9 `java.util.concurrent.Flow` 인터페이스
+- 이 방식에서의 핵심 아이디어는 f와 g의 시그니처를 변경하여 콜백 스타일 프로그래밍을 사용하는 것이다.
+`void f(int x, IntConsumer dealWithResult);`
+- `f`가 아무것도 리턴하지 않는데 어떻게 동작될 수 있을까? 답은 `f`에 추가적인 argument로 *callback*(람다)을 대신 전달하고 `f`가 준비됐을 때 어떤 값을 리턴하는것이 아니라 이 람다를 호출하도록 만드는 것이다.
+```java
+class CallbackStyleExample {
+    public static void main(String[] args) throws InterruptedException {
+        int x = 1337;
+        Result result = new Result();
+
+        f(x, (int y) -> { result.left = y; System.out.println((result.left + result.right));});
+        g(x, (int z) -> { result.right = z; System.out.println((result.left + result.right));});
+    }
+    private static class Result {
+        private int left;
+        private int right;
+    }
+
+    private static void f(int x, IntConsumer dealWithResult) {
+        dealWithResult.accept(f(x));
+    }
+
+    private static void g(int x, IntConsumer dealWithResult) {
+        dealWithResult.accept(g(x));
+    }
+
+    private static int f(int x) {
+        return x * 2;
+    }
+    private static int g(int x) {
+        return x + 1;
+    }
+}
+
+// 2674
+// 4012
+```
+- 그러나 위처럼 실행할 시 결과가 달라진다. f와 g의 호출 합계를 정확하게 출력하지 않고 상황에 따라 먼저 계산된 결과를 출력한다. 이러한 문제에 대한 두가지 답이 있다.
+    - if-then-else를 이용해 적절한 락을 걸어서 계산하고 `println`을 호출한다.
+    - 리액티브 스타일 API는 일련의 이벤트에 반응하기 위해 사용하는 것이지 단일 결과를 위해 사용하기엔 부적합하다. 이런 경우는 `Future`가 더 적절하다.
