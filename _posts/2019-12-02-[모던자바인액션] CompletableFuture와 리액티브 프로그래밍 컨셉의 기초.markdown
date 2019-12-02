@@ -1,7 +1,7 @@
 ---
 layout: splash
-title:  "[모던자바인액션] 스트림 활용"
-date:   2019-10-06 23:27:00 +0900
+title:  "2019-12-02-[모던자바인액션] CompletableFuture와 리액티브 프로그래밍 컨셉의 기초"
+date:   2019-12-02 23:27:00 +0900
 categories: 자바
 ---
 
