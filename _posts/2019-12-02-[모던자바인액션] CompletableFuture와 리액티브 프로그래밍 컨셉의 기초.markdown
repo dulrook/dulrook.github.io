@@ -1,6 +1,6 @@
 ---
 layout: splash
-title:  "2019-12-02-[모던자바인액션] CompletableFuture와 리액티브 프로그래밍 컨셉의 기초"
+title:  "[모던자바인액션] CompletableFuture와 리액티브 프로그래밍 컨셉의 기초"
 date:   2019-12-02 23:27:00 +0900
 categories: 자바
 ---
@@ -116,41 +116,48 @@ public class ExecutorServiceExample {
 *2. 리액티브 프로그래밍 스타일*
 - 발행-구독 프로토콜 기반의 자바9 `java.util.concurrent.Flow` 인터페이스
 - 이 방식에서의 핵심 아이디어는 f와 g의 시그니처를 변경하여 콜백 스타일 프로그래밍을 사용하는 것이다.
-`void f(int x, IntConsumer dealWithResult);`
+- `void f(int x, IntConsumer dealWithResult);`
 - `f`가 아무것도 리턴하지 않는데 어떻게 동작될 수 있을까? 답은 `f`에 추가적인 argument로 *callback*(람다)을 대신 전달하고 `f`가 준비됐을 때 어떤 값을 리턴하는것이 아니라 이 람다를 호출하도록 만드는 것이다.
-```java
-class CallbackStyleExample {
-    public static void main(String[] args) throws InterruptedException {
-        int x = 1337;
-        Result result = new Result();
+    ```java
+    class CallbackStyleExample {
+        public static void main(String[] args) throws InterruptedException {
+            int x = 1337;
+            Result result = new Result();
 
-        f(x, (int y) -> { result.left = y; System.out.println((result.left + result.right));});
-        g(x, (int z) -> { result.right = z; System.out.println((result.left + result.right));});
-    }
-    private static class Result {
-        private int left;
-        private int right;
+            f(x, (int y) -> { 
+                result.left = y; 
+                System.out.println((result.left + result.right));
+            });
+            
+            g(x, (int z) -> { 
+                result.right = z; 
+                System.out.println((result.left + result.right));
+            });
+        }
+        private static class Result {
+            private int left;
+            private int right;
+        }
+
+        private static void f(int x, IntConsumer dealWithResult) {
+            dealWithResult.accept(f(x));
+        }
+
+        private static void g(int x, IntConsumer dealWithResult) {
+            dealWithResult.accept(g(x));
+        }
+
+        private static int f(int x) {
+            return x * 2;
+        }
+        private static int g(int x) {
+            return x + 1;
+        }
     }
 
-    private static void f(int x, IntConsumer dealWithResult) {
-        dealWithResult.accept(f(x));
-    }
-
-    private static void g(int x, IntConsumer dealWithResult) {
-        dealWithResult.accept(g(x));
-    }
-
-    private static int f(int x) {
-        return x * 2;
-    }
-    private static int g(int x) {
-        return x + 1;
-    }
-}
-
-// 2674
-// 4012
-```
+    // 2674
+    // 4012
+    ```
 - 그러나 위처럼 실행할 시 결과가 달라진다. f와 g의 호출 합계를 정확하게 출력하지 않고 상황에 따라 먼저 계산된 결과를 출력한다. 이러한 문제에 대한 두가지 답이 있다.
     - if-then-else를 이용해 적절한 락을 걸어서 계산하고 `println`을 호출한다.
     - 리액티브 스타일 API는 일련의 이벤트에 반응하기 위해 사용하는 것이지 단일 결과를 위해 사용하기엔 부적합하다. 이런 경우는 `Future`가 더 적절하다.
