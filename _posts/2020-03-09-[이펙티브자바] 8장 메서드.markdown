@@ -1,0 +1,286 @@
+---
+layout: splash
+title:  "2020-03-09-[이펙티브자바] 8장 메서드"
+date:   2020-03-09 23:27:00 +0900
+categories: 자바
+---
+
+## Item 49: Check parameters for validity
+- 대부분의 메서드와 생성자는 어떤 값이 파라미터로 들어와야하는지에 대한 제약 조건들이 있다.
+    - 예를 들어, 인덱스 값으로 음수값이 들어오면 안되거나 참조 객체는 null이 아니여야한다 등
+- 메서드는 본격적인 실행전에 파라미터를 체크해야 한다. 그래야 빠르고 간결하게 적절한 예외 처리를 할 수 있다.
+- `public` 과 `protected` 메서드는 Javadoc의 `@throws` 태그를 사용하여 파라미터가 제약 조건을 위반했을 때 어떤 예외가 던져져야 하는지 문서화해야한다.
+- 자바 7에 추가된 **`Objects.requireNonNull`** 은 유연하고 편리하게 null 체크를 수행할 수 있다. 
+```java
+// Inline use of Java's null checking facility
+this.strategy = Objects.requireNonNull(strategy, "strategy");
+
+/**
+* Checks that the specified object reference is not {@code null} and
+* throws a customized {@link NullPointerException} if it is. This method
+* is designed primarily for doing parameter validation in methods and
+* constructors with multiple parameters, as demonstrated below:
+* <blockquote><pre>
+* public Foo(Bar bar, Baz baz) {
+*     this.bar = Objects.requireNonNull(bar, "bar must not be null");
+*     this.baz = Objects.requireNonNull(baz, "baz must not be null");
+* }
+* </pre></blockquote>
+*
+* @param obj     the object reference to check for nullity
+* @param message detail message to be used in the event that a {@code
+*                NullPointerException} is thrown
+* @param <T> the type of the reference
+* @return {@code obj} if not {@code null}
+* @throws NullPointerException if {@code obj} is {@code null}
+*/
+public static <T> T requireNonNull(T obj, String message) {
+    if (obj == null)
+        throw new NullPointerException(message);
+    return obj;
+}
+```
+
+- 자바 9에서 `java.util.Objects` 에는 값의 범위를 체크하는 기능이 추가되었다: `checkFromIndexSize, checkFromToIndex, checkIndex`. 이 기능들은 널 체킹 메서드로써는 유연하지 못하다. 자신만의 에러 메세지를 명시할 수 없고, 배열이나 리스트의 인덱스를 위해 설계되었기 때문이다. 그래도 만약 필요하다면 유용하게 쓰일 수 있다.
+- `assert`를 사용하여 패키지 내부에서 사용되는 `private` 메서드 호출에 사용되는 파라미터를 체크할 수 있다.
+```java
+private static void sort(long a[], int offset, int length) {
+    assert a != null;
+    assert offset >= 0 && offset <= a.length;
+    assert length >= 0 && length <= a.length - offset;
+    ... // Do the computation
+
+    // assertions throw AssertionError if the fail
+}
+```
+
+## Item 50: Make defensive copies when needed
+- 자바의 장점중 하나는 *안전한* 언어라는 점 이다. *안전하지 못한* C나 C++과 다르게 네이티브 메서드가 없기 때문에 버퍼 overrun, 배열 overrun, 와일드 포인터, 메모리 충돌 에러등이 발생하지 않는다.
+- 그러나 자바가 *안전한* 언어라고는 해도 약간의 노력은 필요하다. **반드시 방어적으로 프로그래밍해야하며, 당신이 작성한 클래스의 클라이언트들은 클래스의 불변성을 깨뜨리기 위해 최선을 다할것이라고 가정해야한다.** 
+
+```java
+// Broken "immutable" time period class
+public final class Period {
+    private final Date start;
+    private final Date end;
+
+    /**
+    * @param start the beginning of the period
+    * @param end the end of the period; must not precede start
+    * @throws IllegalArgumentException if start is after end
+    * @throws NullPointerException if start or end is null
+    */
+    public Period(Date start, Date end) {
+        if (start.compareTo(end) > 0)
+            throw new IllegalArgumentException(start + " after " + end);
+        this.start = start;
+        this.end = end;
+    }
+    
+    public Date start() {
+        return start;   
+    }
+    public Date end() {
+        return end;
+    }
+    ... // Remainder omitted
+    }
+}
+```
+- 언뜻 보기에는 위 클스는 불변해보인다. 하지만 `Date`가 가변 객체임을 악용하면 쉽게 불변성을 깨뜨릴 수 있다.
+```java
+// Attack the internals of a Period instance
+Date start = new Date();
+Date end = new Date();
+Period p = new Period(start, end);
+end.setYear(78); // Modifies internals of p!
+```
+- 이런 종류의 공격으로부터 `Period` 인스턴스의 내부를 보호하기 위해, **반드시 각 가변 파라미터를 *방어적 복사*하여 생성자에 넘겨야한다** 
+```java
+// Repaired constructor - makes defensive copies of parameters
+public Period(Date start, Date end) {
+    this.start = new Date(start.getTime());
+    this.end = new Date(end.getTime());
+    if (this.start.compareTo(this.end) > 0)
+        throw new IllegalArgumentException(this.start + " after " + this.end);
+}
+```
+- 여전히 접근자는 가변적인 내부로의 접근을 허용하고 있으므로, 다음과 같은 공격이 가능하다.
+```java
+// Second attack on the internals of a Period instance
+Date start = new Date();
+Date end = new Date();
+Period p = new Period(start, end);
+p.end().setYear(78); // Modifies internals of p!
+```
+- 이러한 공격을 막기위해서는, 단순히 접근자를 수정하여 가변적인 내부 필드의 방어적 복사본을 리턴하면 된다.
+```java
+// Repaired accessors - make defensive copies of internal fields
+public Date start() {
+    return new Date(start.getTime());
+}
+public Date end() {
+    return new Date(end.getTime());
+}
+```
+
+## Item 51: Design method signatures carefully
+- 메서드 작명은 신중하게 하라. 
+    - 작명은 네이밍 컨벤션을 준수하도록한다. 가장 중요한 목표는 이해하기 쉽고 같은 패키지내에 다른 이름들과 일관성이 있어야한다는 것이다. 자바 라이브러리 API를 참고하면 도움이 된다.
+- 편의 메서드를 너무 많이 만들지 말라.
+    - 너무 많은 메서드는 학습하고, 사용하고, 문서화하고, 테스트하고, 유지하기 어렵다.
+- 너무 긴 파라미터 개수를 지양하라.
+    - 4개 이하의 파라미터를 사용하도록 하자. 파라미터 리스를 줄이는 방법엔 3가지 기법이 있다.
+        1.  메서드를 여러개로 쪼갠다. 
+        2. *helper 클래스* 를 만들어서 긴 파라미터 리스트를 그룹화한다. 일반적으로 이때 helper 클래스는 정적 멤버 클래스가 된다.
+        3. 첫 번째 방법과 두 번째 방법을 결합하여 빌더 패턴을 적용한다. 메서드에 파라미터가 너무 많고 특히 그 중 일부가 필수 파라미터가 아니라면 빌더패턴은 좋은 방법이 될 수 있다.
+- 파라미터 타입으로는 클래스보다는 인터페이스를 사용하라.
+- `boolean` 파라미터 보다는 2개 원소를 갖는 이넘 타입을 사용하라. 
+
+## Item 52: Use overloading judiciously
+- 단순히 메서드를 다중정의할수 있다고해서, 다중정의를 해야하는 건 아니다. 일반적으로 파라미터 개수가 같은 시그니처로 다중정의하는 것은 피해야한다.
+
+## Item 53: Use varargs judiciously
+- 아래 방법은 여러가지 문제가 있는데, 가장 심각한 점은 클라이언트가 아무런 인자없이 메서드를 호출하는 것이다. 이 경우에는 컴파일 타임이 아닌 런타임에서 에러가 발생한다.
+```java
+// The WRONG way to use varargs to pass one or more arguments!
+static int min(int... args) {
+    if (args.length == 0)
+        throw new IllegalArgumentException("Too few arguments");
+    int min = args[0];
+    for (int i = 1; i < args.length; i++)
+        if (args[i] < min)
+            min = args[i];
+    return min;
+}
+```
+
+- 아래 방법은 위 방법이 갖고있는 문제점을 모두 해결한다.
+```java
+// The right way to use varargs to pass one or more arguments
+static int min(int firstArg, int... remainingArgs) {
+    int min = firstArg;
+    for (int arg : remainingArgs)
+        if (arg < min)
+            min = arg;
+    return min;
+}
+```
+
+
+## Item 54: Return empty collections or arrays, not nulls
+```java
+// Returns null to indicate an empty collection. Don’t do this!
+private final List<Cheese> cheesesInStock = ...;
+/**
+ * @return a list containing all of the cheeses in the shop,
+ * or null if no cheeses are available for purchase.
+ */
+public List<Cheese> getCheeses() {
+    return cheesesInStock.isEmpty() ? null : new ArrayList<>(cheesesInStock);
+}
+```
+- 위 코드에서 치즈가 없는 경우를 특별 케이스로 삼을 이유가 전혀 없다. 이런 경우, 클라이언트에서 특수 케이스를 위해 아래처럼 추가적인 작업을 해주게된다.
+```java
+List<Cheese> cheeses = shop.getCheeses();
+if (cheeses != null && cheeses.contains(Cheese.STILTON))
+    System.out.println("Jolly good, just the thing.");
+```
+
+```java
+//The right way to return a possibly empty collection
+public List<Cheese> getCheeses() {
+    return new ArrayList<>(cheesesInStock);
+}
+```
+
+## Item 55: Return optionals judiciously
+- 어떤 메서드가 항상 값을 리턴할 수 없고, 이 메서드를 사용하는 사용자가 이를 중요하게 여긴다고 믿는다면 메서드가 옵셔널을 리턴하도록해야 할 것 이다. 그러나 성능에 아주 민감한 메서드의 경우라면, null을 리턴하거나 예외를 던지는 편이 낫다.
+
+
+## Item 56: Write doc comments for all exposed API elements
+- *Javadoc* 유틸리티를 통해 쉽게 API 문서를 소스코드로부터 자동으로 만들 수 있다.
+- 작성한 API를 적절하게 문서화 하려면, 반드시 제공되는 모든 클래스, 인터페이스, 생성자, 메서드, 필드 선언에 주석을 달아야한다.
+- 주석은 메서드와 클라이언트 사이에 동작을 간결하게 기술해야한다.
+    - 메서드가 어떻게 작동하는지 보다는 무엇을 하는지에 대해 초점을 맞춰야한다.
+    - 주석은 메서드의 모든 전제조건 나열하고, 실행이 성공적으로 완료되고나면 어떤 상태가 되어야하는지를 기술해야한다.
+    - 일반적으로 전제조건은 언체크 예외에 대한 `@throws` 태그를 통해 암시적으로 기술된다.
+- 메서드의 동작을 완전하게 설명하기 위해서는, 모든 파라미터에 `@param`을 달고 리턴 타입이 void인 경우에는 `@return` 태그를 달고, 모든 예외에 대해 `@throws` 태그를 달아줘야한다.
+```java
+/**
+* Returns the element at the specified position in this list.
+*
+* <p>This method is <i>not</i> guaranteed to run in constant
+* time. In some implementations it may run in time proportional
+* to the element position.
+*
+* @param index index of element to return; must be
+* non-negative and less than the size of this list
+* @return the element at the specified position in this list
+* @throws IndexOutOfBoundsException if the index is out of range
+* ({@code index < 0 || index >= this.size()})
+*/
+E get(int index);
+```
+
+- 자기 사용(*self-use*) 패턴의 경우, 프로그래머가 메서드의 오버라이딩을 어떻게 해야할 지를 쉽게 알수있도록 문서화해야한다.
+- 이러한 패턴에는 자바 8 부터 추가된 `@implSpec` 태그를 사용한다. 이 태그는 메서드와 서브클래스 사이에 관계를 기술한다. 
+```java
+/**
+ * Returns true if this collection is empty.
+ *
+ * @implSpec
+ * This implementation returns {@code this.size() == 0}.
+ *
+ * @return true if this collection is empty
+ */
+public boolean isEmpty() { ... }
+```
+
+- 제네릭 타입이나 메서드를 문서화할 때, 반드시 모든 타입 파라미터에 대해 설명해야한다.
+```java
+/**
+ * An object that maps keys to values. A map cannot contain
+ * duplicate keys; each key can map to at most one value.
+ *
+ * (Remainder omitted)
+ *
+* @param <K> the type of keys maintained by this map
+ * @param <V> the type of mapped values
+ */
+public interface Map<K, V> { ... }
+```
+- enum 타입을 문서화할때는 모든 상수에도 주석을 달아줘야한다.
+```java
+/**
+ * An instrument section of a symphony orchestra.
+ */
+public enum OrchestraSection {
+    /** Woodwinds, such as flute, clarinet, and oboe. */
+    WOODWIND,
+    /** Brass instruments, such as french horn and trumpet. */
+    BRASS,
+    /** Percussion instruments, such as timpani and cymbals. */
+    PERCUSSION,
+    /** Stringed instruments, such as violin and cello. */
+    STRING;
+}
+```
+
+- 애너테이션 타입을 문서화 할때는 , 타입 자체와 마찬가지로 멤버에 주석을 달아야한다.
+```java
+/**
+ * Indicates that the annotated method is a test method that
+ * must throw the designated exception to pass.
+ */
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface ExceptionTest {
+ /**
+ * The exception that the annotated test method must throw
+ * in order to pass. (The test is permitted to throw any
+ * subtype of the type described by this class object.)
+ */
+    Class<? extends Throwable> value();
+}
+```
