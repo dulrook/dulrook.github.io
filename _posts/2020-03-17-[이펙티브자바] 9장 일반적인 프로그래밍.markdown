@@ -31,21 +31,94 @@ for (Element e : elements) {
 - 가능한 모든 곳에서 `for`문이 아닌 `for-each` 문을 사용하자.
 
 ## Item 59: Know and use the libraries
+- 자바 프로그래머라면 적어도 **java.lang, java.util, java.io**에 익숙해야한다.
+- 라이브러리 코드를 사용하여 코드 품질을 높일 수 있다.
 
 ## Item 60: Avoid float and double if exact answers are required
+- `float` 과 `double` 타입은 정확한 근사치를 빠르게 계산하도록 설계되었기 때문에 금융 관련하여 사용하기에 적합하지 않다.
+- `System.out.prinlnt(1.03 - 0.42);` 코드는 0.6100000000000001 을 출력한다.
+- 금융 계산에는 **BigDecimal, int, long** 등을 사용해야한다.
+    - 숫자를 아홉 자리 십진수로 표현할 수 있다면 `int`를 사용
+    - 열여덟 자리 십진수로 표현할 수 있다면 `long`을 사용
+    - 그 이상은 `BigDecimal` 사용
 
 ## Item 61: Prefer primitive types to boxed primitives
+- 자바의 데이터 타입은 *primitives* (int, double, boolean) 와 *reference type* (String, List)으로 나뉜다.
+- 모든 기본 타입은 대응되는 박싱된 기본 타입이 있다.
+    - int & Integer, double & Double, boolean & Boolean
+- 두 타입의 주된 차이점
+    1. 박싱된 기본타입은 식별성(identity)을 갖는다. 즉, 값이 같아도 서로 다르게 식별될 수 있다.
+    2. 박싱된 기본타입은 null을 가질 수 있다.
+    3. 시간과 메모리 사용면에서 기본타입이 더 효율적이다.
+- 값을 비교하기 위해 **==** 연산자를 박싱된 기본 타입에 사용하면 오류가 발생한다.
+- 박싱된 기본 타입을 사용해야 하는 경우
+    1. 컬렉션의 원소, 키, 값으로 쓴다. 컬렉션에는 기본 타입을 사용할 수 없다.
+    2. 리플렉션을 통해 메서드를 호출할 때 박싱된 기본 타입만 사용해야한다.
 
 ## Item 62: Avoid strings where other types are more appropriate
+- 문자열을 사용해 열거 타입, 혼합 타입등을 대신하는 것은 적절하지 않다.
+- 문자열을 잘못 사용하면 번거롭고, 덜 유연하고, 느리고, 오류 가능성이 크다.
 
 ## Item 63: Beware the performance of string concatenation
+- '+' 연산자를 이용해 문자열을 합쳐주는 경우, 문자열 n개를 잇는 시간은 n^2에 비례한다.
+- **String 대신 StringBuilder를 사용하자**
+
+```java
+// Inappropriate use of string concatenation - Performs poorly!
+public String statement() {
+    String result = "";
+    for (int i = 0; i < numItems(); i++)
+        result += lineForItem(i); // String concatenation
+    return result;
+}
+
+public String statement() {
+    StringBuilder b = new StringBuilder(numItems() * LINE_WIDTH);
+    for (int i = 0; i < numItems(); i++)
+        b.append(lineForItem(i));
+    return b.toString();
+}
+```
 
 ## Item 64: Refer to objects by their interfaces
+- 인터페이스를 타입으로 사용하면 프로그램이 훨씬 유연해진다.
+    - 나중에 구현 클래스를 교체하고 싶을 때 생성자만 교체해주면 됨
+```java
+// Good - uses interface as type
+Set<Son> sonSet = new LinkedHashSet<>();
+
+// Bad - uses class as type!
+LinkedHashSet<Son> sonSet = new LinkedHashSet<>();
+```
+
+- 적합한 인터페이스가 없다면 클래스의 계층구조 중 필요한 기능을 만족하는 가장 덜 구체적인 클래스를 타입으로 사용하자.
 
 ## Item 65: Prefer interfaces to reflection
+- 리플렉션은 아주 제한된 형태로만 사용해야한다.
+    - 컴파일타임 시 타입 검사가 주는 이점을 누리지 못함
+    - 코드가 지저분해지고 장황해짐
+    - 성능이 떨어짐
+- 리플렉션은 되도록 객체 생성에만 사용해야한다.
 
 ## Item 66: Use native methods judiciously
+- 네이티브 언어는 안전하지 않기 때문에 디버깅이 어렵다.
+- 자바 코드와 네이티브 코드의 경계를 넘나들 때 마다 추가적인 비용이 생긴다.
+- 성능 개선을 목적으로 네이티브 메서드를 사용하는것은 권장되지 않는다.
 
 ## Item 67: Optimize judiciously
+- 견고한 구조를 포기하고 성능을 높이려고 하지말자.
+- 최적화 규칙
+    1. 하지 마라.
+    2. (전문가 한정) 아직 하지 마라.
+    3. 최적화 시도 전후로 성능을 측정
 
 ## Item 68: Adhere to generally accepted naming conventions
+- 타입 매개변수의 이름
+    - T: 임의의 타입
+    - E: 컬렉션 원소의 타입
+    - K,V: 맵의 키와 값
+    - X: 예외
+    - R: 메서드의 반환 타입
+- 객체의 타입을 바꿔 다른 타입의 객체를 반환하는 메서드의 이름은 보통 toType 형태로 짓는다(toString, toArray)
+- 정적 팩터리의 이름: from, of, valueOf, instance, getInstance, newInstance,  getType, newType
+- boolean 값을 반환하는 경우엔 보통 is로 시작하고 드물게 has로 시작한다.(isDigit, isProbablePrime...)
